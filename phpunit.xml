@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true"
+>
+    <testsuites>
+        <testsuite name="Unit">
+            <directory>tests/Unit</directory>
+        </testsuite>
+        <testsuite name="Feature">
+            <directory>tests/Feature</directory>
+        </testsuite>
+    </testsuites>
+    <source>
+        <include>
+            <directory>app</directory>
+        </include>
+    </source>
+    <php>
+        <env name="APP_ENV" value="testing"/>
+        <!-- Fixed, non-secret test-only key so the suite is self-contained (no .env needed, CI-safe). -->
+        <env name="APP_KEY" value="base64:QUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUE="/>
+        <env name="APP_MAINTENANCE_DRIVER" value="file"/>
+        <env name="BCRYPT_ROUNDS" value="4"/>
+        <env name="BROADCAST_CONNECTION" value="null"/>
+        <env name="CACHE_STORE" value="array"/>
+        <!-- PostgreSQL only. Dedicated test database — never the development DB.
+             force="true" makes these authoritative over any ambient shell env.
+             No DB_PASSWORD here: local password (if any) lives in the git-ignored
+             .env.testing; CI injects credentials via protected secrets.
+             DB_URL is pinned empty so an external DB_URL can never silently
+             redirect the suite to another database. -->
+        <env name="DB_CONNECTION" value="pgsql" force="true"/>
+        <env name="DB_HOST" value="127.0.0.1" force="true"/>
+        <env name="DB_PORT" value="5432" force="true"/>
+        <env name="DB_DATABASE" value="basecms_testing" force="true"/>
+        <env name="DB_USERNAME" value="basecms_test" force="true"/>
+        <env name="DB_URL" value="" force="true"/>
+        <env name="MAIL_MAILER" value="array"/>
+        <env name="QUEUE_CONNECTION" value="sync"/>
+        <env name="SESSION_DRIVER" value="array"/>
+        <env name="PULSE_ENABLED" value="false"/>
+        <env name="TELESCOPE_ENABLED" value="false"/>
+        <env name="NIGHTWATCH_ENABLED" value="false"/>
+
+        <!-- Host architecture injected before routes/panel register (fail-closed values) -->
+        <env name="APP_URL" value="http://basecms.test"/>
+        <env name="PUBLIC_APP_URL" value="http://basecms.test"/>
+        <env name="ADMIN_APP_URL" value="http://admin.basecms.test"/>
+        <env name="ADMIN_DOMAIN" value="admin.basecms.test"/>
+        <env name="APP_LOCALE" value="en"/>
+        <env name="SUPPORTED_LOCALES" value="en,ar"/>
+        <env name="RTL_LOCALES" value="ar"/>
+    </php>
+</phpunit>

@@ -1,0 +1,50 @@
+*.log
+.DS_Store
+.env
+.env.backup
+.env.production
+.env.testing
+.phpactor.json
+.phpunit.result.cache
+/.codex
+/.cursor/
+/.idea
+/.nova
+/.phpunit.cache
+/.vscode
+/.zed
+/auth.json
+/node_modules
+/public/build
+/public/fonts-manifest.dev.json
+/public/hot
+/public/storage
+/storage/*.key
+/storage/pail
+/vendor
+_ide_helper.php
+Homestead.json
+Homestead.yaml
+Thumbs.db
+
+# --- baseCMS-Starter hardening ---
+# Local editor / Claude Code config — keep local, never track
+/.claude/
+
+# Cloud credentials & secrets — never commit
+/secrets/
+service-account*.json
+*-service-account.json
+*-credentials.json
+*.credentials.json
+application_default_credentials.json
+gcp-*.json
+gcs-*.json
+
+# Database dumps & backups
+*.sql
+*.sql.gz
+*.dump
+/backups/
+
+/dump.rdb
