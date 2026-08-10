@@ -140,4 +140,135 @@ class FormSubmissionTest extends AdminTestCase
         $this->get($this->adminHost.'/form-submissions/create')->assertNotFound();
         $this->get($this->adminHost.'/form-submissions/'.$submission->getKey().'/edit')->assertNotFound();
     }
+
+    public function test_checkbox_markup_contract_stores_true_and_drops_undeclared_input(): void
+    {
+        // Markup contract: our public checkbox markup explicitly uses
+        // value="1", so a ticked box posts "1" — the payload stores a real
+        // boolean true.
+        Form::factory()->newsletter()->create(['slug' => 'newsletter']);
+
+        $response = $this->from($this->publicHost.'/')
+            ->post($this->publicHost.'/forms/newsletter', [
+                'email' => 'reader@example.com',
+                'consent' => '1',
+                'undeclared' => 'DROP ME',
+            ]);
+
+        $response->assertSessionHasNoErrors();
+
+        $submission = FormSubmission::query()->sole();
+
+        $this->assertSame('reader@example.com', $submission->payload['email']);
+        $this->assertTrue($submission->payload['consent']);
+        $this->assertArrayNotHasKey('undeclared', $submission->payload);
+    }
+
+    public function test_valid_select_value_is_stored_and_absent_optional_checkbox_records_false(): void
+    {
+        Form::factory()->create([
+            'slug' => 'mixed',
+            'fields' => [
+                [
+                    'name' => 'topic',
+                    'type' => 'select',
+                    'required' => true,
+                    'label' => ['en' => 'Topic'],
+                    'options' => [['value' => 'billing', 'label' => ['en' => 'Billing']]],
+                ],
+                ['name' => 'updates', 'type' => 'checkbox', 'required' => false, 'label' => ['en' => 'Updates']],
+            ],
+        ]);
+
+        // Markup contract: an unticked checkbox posts nothing at all — the
+        // stored payload still records the answer, as explicit false.
+        $this->from($this->publicHost.'/')
+            ->post($this->publicHost.'/forms/mixed', ['topic' => 'billing'])
+            ->assertSessionHasNoErrors();
+
+        $payload = FormSubmission::query()->sole()->payload;
+
+        $this->assertSame('billing', $payload['topic']);
+        $this->assertFalse($payload['updates']);
+    }
+
+    public function test_forged_select_value_is_rejected_and_not_persisted(): void
+    {
+        Form::factory()->inquiry()->create(['slug' => 'inquiry']);
+
+        $response = $this->from($this->publicHost.'/')
+            ->post($this->publicHost.'/forms/inquiry', [
+                'full_name' => 'Visitor',
+                'email' => 'visitor@example.com',
+                'preferred_contact_method' => 'phone_call',
+                'topic' => 'forged_value',
+            ]);
+
+        $response->assertSessionHasErrors(['topic']);
+        $this->assertSame(0, FormSubmission::query()->count());
+    }
+
+    public function test_missing_required_consent_is_rejected_server_side(): void
+    {
+        Form::factory()->newsletter()->create(['slug' => 'newsletter']);
+
+        $response = $this->from($this->publicHost.'/')
+            ->post($this->publicHost.'/forms/newsletter', [
+                'email' => 'reader@example.com',
+                // Consent deliberately absent — client JS is never the
+                // authority; the 'accepted' rule is.
+            ]);
+
+        $response->assertSessionHasErrors(['consent']);
+        $this->assertSame(0, FormSubmission::query()->count());
+    }
+
+    public function test_tampered_options_definition_still_rejects_invalid_entries(): void
+    {
+        // Written directly to the database, bypassing the admin builder:
+        // one syntactically invalid entry alongside one valid entry.
+        Form::factory()->create([
+            'slug' => 'tampered',
+            'fields' => [[
+                'name' => 'topic',
+                'type' => 'select',
+                'required' => true,
+                'label' => ['en' => 'Topic'],
+                'options' => [
+                    ['value' => 'Not A Machine Value', 'label' => ['en' => 'Bad']],
+                    ['value' => 'valid_topic', 'label' => ['en' => 'Valid']],
+                ],
+            ]],
+        ]);
+
+        $this->from($this->publicHost.'/')
+            ->post($this->publicHost.'/forms/tampered', ['topic' => 'Not A Machine Value'])
+            ->assertSessionHasErrors(['topic']);
+
+        $this->assertSame(0, FormSubmission::query()->count());
+
+        $this->from($this->publicHost.'/')
+            ->post($this->publicHost.'/forms/tampered', ['topic' => 'valid_topic'])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(1, FormSubmission::query()->count());
+    }
+
+    public function test_localized_route_accepts_inquiry_submission(): void
+    {
+        Form::factory()->inquiry()->create(['slug' => 'inquiry']);
+
+        $response = $this->from($this->publicHost.'/ar')
+            ->post($this->publicHost.'/ar/forms/inquiry', [
+                'full_name' => 'زائر',
+                'email' => 'visitor@example.com',
+                'preferred_contact_method' => 'whatsapp',
+                'topic' => 'support',
+            ]);
+
+        $response->assertRedirect($this->publicHost.'/ar');
+        $response->assertSessionHas('status', __('content.forms.submitted', [], 'ar'));
+
+        $this->assertSame('whatsapp', FormSubmission::query()->sole()->payload['preferred_contact_method']);
+    }
 }

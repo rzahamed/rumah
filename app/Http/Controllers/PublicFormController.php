@@ -31,13 +31,22 @@ class PublicFormController extends Controller
 
         $validated = $request->validate($form->validationRules());
 
+        // Only the declared field names, even if validation let extra
+        // request keys through untouched.
+        $payload = collect($validated)
+            ->only($form->fieldNames())
+            ->all();
+
+        // Checkboxes arrive as whatever the markup sends ("1", "on", …) or
+        // not at all when unticked — store a real boolean either way so
+        // every submission records the answer explicitly.
+        foreach ($form->checkboxFieldNames() as $checkbox) {
+            $payload[$checkbox] = filter_var($payload[$checkbox] ?? false, FILTER_VALIDATE_BOOLEAN);
+        }
+
         FormSubmission::query()->create([
             'form_id' => $form->getKey(),
-            // Only the declared field names, even if validation let extra
-            // request keys through untouched.
-            'payload' => collect($validated)
-                ->only($form->fieldNames())
-                ->all(),
+            'payload' => $payload,
         ]);
 
         return redirect()

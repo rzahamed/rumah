@@ -15,6 +15,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
@@ -82,10 +83,18 @@ class FormResource extends Resource
                                     $type => __('content.field_types.'.$type),
                                 ])
                                 ->all())
+                            // Options visibility and the consent-toggle
+                            // label react to the chosen type.
+                            ->live()
                             ->required(),
 
                         Toggle::make('required')
-                            ->label(__('content.fields.field_required'))
+                            // For a checkbox, "required" means the visitor
+                            // must tick it — consent semantics, enforced
+                            // server-side via the 'accepted' rule.
+                            ->label(fn (Get $get): string => $get('type') === 'checkbox'
+                                ? __('content.fields.field_required_consent')
+                                : __('content.fields.field_required'))
                             ->default(false),
 
                         ...collect(config('platform.supported_locales', ['en']))
@@ -94,6 +103,30 @@ class FormResource extends Resource
                                 ->required($locale === config('platform.default_locale', 'en'))
                                 ->maxLength(255))
                             ->all(),
+
+                        Repeater::make('options')
+                            ->label(__('content.fields.field_options'))
+                            ->visible(fn (Get $get): bool => $get('type') === 'select')
+                            ->required(fn (Get $get): bool => $get('type') === 'select')
+                            ->minItems(1)
+                            ->maxItems(Form::MAX_SELECT_OPTIONS)
+                            ->schema([
+                                TextInput::make('value')
+                                    ->label(__('content.fields.option_value'))
+                                    ->required()
+                                    ->maxLength(64)
+                                    // Stable machine identifier — the same
+                                    // pattern the model's sanitizer trusts.
+                                    ->regex(Form::OPTION_VALUE_PATTERN)
+                                    ->distinct(),
+
+                                ...collect(config('platform.supported_locales', ['en']))
+                                    ->map(fn (string $locale) => TextInput::make("label.{$locale}")
+                                        ->label(__('content.fields.option_label').' ('.strtoupper($locale).')')
+                                        ->required($locale === config('platform.default_locale', 'en'))
+                                        ->maxLength(255))
+                                    ->all(),
+                            ]),
                     ]),
             ]);
     }
@@ -128,6 +161,31 @@ class FormResource extends Resource
                 EditAction::make(),
                 static::configureDeleteAction(DeleteAction::make()),
             ]);
+    }
+
+    /**
+     * Strip stale option definitions from non-select fields before saving:
+     * switching a field's type away from select must never persist its old
+     * options. Used by both the create and edit pages.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    public static function normalizeFieldDefinitions(array $data): array
+    {
+        if (is_array($data['fields'] ?? null)) {
+            $data['fields'] = collect($data['fields'])
+                ->map(function ($field) {
+                    if (is_array($field) && ($field['type'] ?? null) !== 'select') {
+                        unset($field['options']);
+                    }
+
+                    return $field;
+                })
+                ->all();
+        }
+
+        return $data;
     }
 
     /**

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
@@ -15,6 +16,10 @@ use Tests\TestCase;
  */
 class HostIsolationTest extends TestCase
 {
+    // The public layout reads site settings (custom code snippets), so
+    // rendering any public page requires a migrated database.
+    use RefreshDatabase;
+
     private string $public = 'http://basecms.test';
 
     private string $admin = 'http://admin.basecms.test';

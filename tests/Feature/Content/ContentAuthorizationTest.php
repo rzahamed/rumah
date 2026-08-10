@@ -4,6 +4,7 @@ namespace Tests\Feature\Content;
 
 use App\Filament\Resources\FormSubmissionResource;
 use App\Models\Category;
+use App\Models\Faq;
 use App\Models\Form;
 use App\Models\FormSubmission;
 use App\Models\Post;
@@ -24,7 +25,7 @@ class ContentAuthorizationTest extends AdminTestCase
     {
         $editor = $this->editor();
 
-        foreach (['posts', 'categories', 'team'] as $prefix) {
+        foreach (['posts', 'categories', 'team', 'faqs'] as $prefix) {
             foreach (['view', 'create', 'update', 'delete'] as $verb) {
                 $this->assertTrue(
                     $editor->can("{$prefix}.{$verb}"),
@@ -47,7 +48,7 @@ class ContentAuthorizationTest extends AdminTestCase
     {
         $admin = $this->admin();
 
-        foreach (['posts.delete', 'categories.update', 'team.create', 'forms.update', 'submissions.view', 'submissions.delete'] as $permission) {
+        foreach (['posts.delete', 'categories.update', 'team.create', 'faqs.delete', 'forms.update', 'submissions.view', 'submissions.delete'] as $permission) {
             $this->assertTrue($admin->can($permission), "admin should hold {$permission}");
         }
     }
@@ -61,6 +62,7 @@ class ContentAuthorizationTest extends AdminTestCase
         $this->assertTrue(Gate::forUser($editor)->allows('update', $post));
         $this->assertTrue(Gate::forUser($editor)->allows('viewAny', Category::class));
         $this->assertTrue(Gate::forUser($editor)->allows('viewAny', TeamMember::class));
+        $this->assertTrue(Gate::forUser($editor)->allows('viewAny', Faq::class));
         $this->assertTrue(Gate::forUser($editor)->denies('viewAny', Form::class));
         $this->assertTrue(Gate::forUser($editor)->denies('viewAny', FormSubmission::class));
     }
@@ -72,6 +74,7 @@ class ContentAuthorizationTest extends AdminTestCase
 
         $this->assertTrue(Gate::forUser($user)->denies('viewAny', Post::class));
         $this->assertTrue(Gate::forUser($user)->denies('create', Category::class));
+        $this->assertTrue(Gate::forUser($user)->denies('viewAny', Faq::class));
     }
 
     public function test_submission_policy_denies_create_update_and_bulk_delete_for_admin(): void

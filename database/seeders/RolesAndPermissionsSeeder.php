@@ -38,7 +38,7 @@ class RolesAndPermissionsSeeder extends Seeder
         // Content modules follow one verb set; submissions deliberately get
         // only view/delete — they are created by the public endpoint and are
         // never editable.
-        $content = collect(['posts', 'categories', 'team'])
+        $content = collect(['posts', 'categories', 'team', 'faqs'])
             ->flatMap(fn (string $prefix): array => [
                 $prefix.'.view',
                 $prefix.'.create',

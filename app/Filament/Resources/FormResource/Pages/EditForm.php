@@ -16,4 +16,13 @@ class EditForm extends EditRecord
             FormResource::configureDeleteAction(DeleteAction::make()),
         ];
     }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        return FormResource::normalizeFieldDefinitions($data);
+    }
 }
