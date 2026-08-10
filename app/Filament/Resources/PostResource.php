@@ -6,6 +6,7 @@ use App\Enums\PostStatus;
 use App\Filament\Resources\PostResource\Pages\CreatePost;
 use App\Filament\Resources\PostResource\Pages\EditPost;
 use App\Filament\Resources\PostResource\Pages\ListPosts;
+use App\Filament\Support\LedgeredUpload;
 use App\Filament\Support\TranslatableInputs;
 use App\Models\Category;
 use App\Models\Post;
@@ -13,6 +14,7 @@ use BackedEnum;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
@@ -62,6 +64,22 @@ class PostResource extends Resource
                 ...TranslatableInputs::textarea('excerpt', __('content.fields.excerpt'), required: false, rows: 3),
 
                 ...TranslatableInputs::textarea('body', __('content.fields.body')),
+
+                FileUpload::make('featured_image_path')
+                    ->label(__('content.fields.featured_image'))
+                    // Env-driven public/private arrangement: local 'public'
+                    // in development, gcs_public_website in production via
+                    // BLOG_FEATURED_DISK — no code change.
+                    ->disk(config('platform.blog_featured_disk'))
+                    ->directory(config('platform.blog_featured_dir'))
+                    ->visibility('public')
+                    ->image()
+                    // Raster web formats only — SVG is scriptable and is
+                    // deliberately excluded from public asset uploads.
+                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
+                    ->maxSize(4096)
+                    ->nullable()
+                    ->saveUploadedFileUsing(LedgeredUpload::saveUsing()),
 
                 Select::make('status')
                     ->label(__('content.fields.status'))

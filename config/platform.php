@@ -50,6 +50,20 @@ return [
     // Media disk (CP4 wires GCS public/private disks; env-driven).
     'media_disk' => env('MEDIA_DISK', 'public'),
 
+    // Blog featured images: 'public' locally so development never needs GCS;
+    // production sets BLOG_FEATURED_DISK=gcs_public_website. Featured images
+    // are public website assets.
+    'blog_featured_disk' => env('BLOG_FEATURED_DISK', 'public'),
+
+    'blog_featured_dir' => trim((string) env('BLOG_FEATURED_DIR', 'blogs'), '/'),
+
     // Days an admin invitation link stays valid before it expires.
     'invitation_expiry_days' => max(1, (int) env('INVITATION_EXPIRY_DAYS', 7)),
+
+    // Hosts allowed for the Cal.com booking URL setting (exact host or any
+    // subdomain of an entry). Extend for white-label Cal domains.
+    'cal_allowed_hosts' => array_values(array_filter(array_map(
+        'trim',
+        explode(',', (string) env('CAL_ALLOWED_HOSTS', 'cal.com'))
+    ))),
 ];

@@ -3,12 +3,14 @@
 namespace App\Providers;
 
 use App\Enums\UserStatus;
+use App\Models\SiteSettings;
 use App\Models\User;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 
@@ -45,6 +47,19 @@ class AppServiceProvider extends ServiceProvider
                 && $user->hasRole('super_admin')
                     ? true
                     : null;
+        });
+
+        // Site settings (custom code snippets + booking URL) are writable
+        // by NO role: the ability is defined false and only the active
+        // super-admin Gate::before override above can grant it. There is no
+        // permission row to misconfigure in the panel.
+        Gate::define('manage-site-settings', fn (User $user): bool => false);
+
+        // The settings row is exposed ONLY to the public layout — the
+        // admin panel renders Filament's own layouts and never receives
+        // this composer, so snippets cannot appear on the admin host.
+        View::composer('layouts.public', function (\Illuminate\View\View $view): void {
+            $view->with('siteSettings', SiteSettings::current());
         });
 
         Password::defaults(fn (): Password => Password::min(12)->letters()->numbers());

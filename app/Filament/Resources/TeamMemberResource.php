@@ -5,12 +5,14 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\TeamMemberResource\Pages\CreateTeamMember;
 use App\Filament\Resources\TeamMemberResource\Pages\EditTeamMember;
 use App\Filament\Resources\TeamMemberResource\Pages\ListTeamMembers;
+use App\Filament\Support\LedgeredUpload;
 use App\Filament\Support\TranslatableInputs;
 use App\Models\TeamMember;
 use BackedEnum;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
@@ -44,6 +46,14 @@ class TeamMemberResource extends Resource
 
                 ...TranslatableInputs::textarea('bio', __('content.fields.bio'), required: false, rows: 4),
 
+                // Public professional contact address, rendered only in the
+                // team biography modal.
+                TextInput::make('email')
+                    ->label(__('content.fields.email'))
+                    ->email()
+                    ->maxLength(255)
+                    ->nullable(),
+
                 FileUpload::make('photo_path')
                     ->label(__('content.fields.photo'))
                     // Env-driven public/private arrangement: local 'public'
@@ -54,7 +64,43 @@ class TeamMemberResource extends Resource
                     ->visibility('public')
                     ->image()
                     ->maxSize(2048)
-                    ->nullable(),
+                    ->nullable()
+                    ->saveUploadedFileUsing(LedgeredUpload::saveUsing()),
+
+                Repeater::make('highlights')
+                    ->label(__('content.fields.highlights'))
+                    ->maxItems(10)
+                    ->defaultItems(0)
+                    ->schema(TranslatableInputs::flatText(__('content.fields.highlight'))),
+
+                Repeater::make('credentials')
+                    ->label(__('content.fields.credentials'))
+                    ->maxItems(10)
+                    ->defaultItems(0)
+                    ->schema([
+                        ...TranslatableInputs::text('title', __('content.fields.credential_title')),
+                        ...TranslatableInputs::text('institution', __('content.fields.credential_institution'), required: false),
+                        ...TranslatableInputs::textarea('description', __('content.fields.credential_description'), required: false, rows: 2, maxLength: 1000),
+                    ]),
+
+                Repeater::make('expertise')
+                    ->label(__('content.fields.expertise'))
+                    ->maxItems(20)
+                    ->defaultItems(0)
+                    ->schema(TranslatableInputs::flatText(__('content.fields.expertise_item'))),
+
+                FileUpload::make('licence_image_path')
+                    ->label(__('content.fields.licence_image'))
+                    ->disk(config('platform.media_disk'))
+                    ->directory('team/licences')
+                    ->visibility('public')
+                    ->image()
+                    // Raster web formats only — SVG is scriptable and is
+                    // deliberately excluded from public asset uploads.
+                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
+                    ->maxSize(2048)
+                    ->nullable()
+                    ->saveUploadedFileUsing(LedgeredUpload::saveUsing()),
 
                 TextInput::make('sort_order')
                     ->label(__('content.fields.sort_order'))

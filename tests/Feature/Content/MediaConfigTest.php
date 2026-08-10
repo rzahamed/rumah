@@ -23,6 +23,15 @@ class MediaConfigTest extends TestCase
         $this->assertArrayHasKey($mediaDisk, config('filesystems.disks'));
     }
 
+    public function test_configured_blog_featured_disk_is_a_defined_disk(): void
+    {
+        $blogDisk = config('platform.blog_featured_disk');
+
+        $this->assertIsString($blogDisk);
+        $this->assertArrayHasKey($blogDisk, config('filesystems.disks'));
+        $this->assertNotSame('', config('platform.blog_featured_dir'));
+    }
+
     public function test_gcs_disks_declare_correct_driver_and_visibility_intent(): void
     {
         $private = config('filesystems.disks.gcs_private');
