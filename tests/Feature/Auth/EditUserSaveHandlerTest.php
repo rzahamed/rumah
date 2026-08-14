@@ -88,10 +88,10 @@ class EditUserSaveHandlerTest extends AdminTestCase
         $target->assignRole('editor');
 
         $errors = $this->expectValidationErrorKeys($target, [
-            'roles' => ['admin'],
+            'role' => 'admin',
         ]);
 
-        $this->assertArrayHasKey('data.roles', $errors);
+        $this->assertArrayHasKey('data.role', $errors);
         $this->assertSame(['editor'], $target->fresh()->getRoleNames()->all());
     }
 
@@ -99,26 +99,38 @@ class EditUserSaveHandlerTest extends AdminTestCase
     {
         $this->actingAs($this->admin());
         $target = User::factory()->create();
+        $target->assignRole('editor');
 
-        foreach ([['roles' => 'admin'], ['roles' => ['']], ['roles' => [42]]] as $payload) {
+        // The shape is now ONE scalar role name. An array is rejected
+        // outright — including a single-element one, which is exactly the
+        // crafted multi-role shape this invariant exists to stop.
+        $payloads = [
+            ['role' => ['admin']],
+            ['role' => ['admin', 'editor']],
+            ['role' => ''],
+            ['role' => 42],
+        ];
+
+        foreach ($payloads as $payload) {
             $errors = $this->expectValidationErrorKeys($target, $payload);
-            $this->assertArrayHasKey('data.roles', $errors);
+            $this->assertArrayHasKey('data.role', $errors);
         }
 
-        $this->assertSame([], $target->fresh()->getRoleNames()->all());
+        $this->assertSame(['editor'], $target->fresh()->getRoleNames()->all());
     }
 
     public function test_forged_unknown_role_names_are_rejected(): void
     {
         $this->actingAs($this->admin());
         $target = User::factory()->create();
+        $target->assignRole('editor');
 
         $errors = $this->expectValidationErrorKeys($target, [
-            'roles' => ['nonexistent_role'],
+            'role' => 'nonexistent_role',
         ]);
 
-        $this->assertArrayHasKey('data.roles', $errors);
-        $this->assertSame([], $target->fresh()->getRoleNames()->all());
+        $this->assertArrayHasKey('data.role', $errors);
+        $this->assertSame(['editor'], $target->fresh()->getRoleNames()->all());
     }
 
     public function test_forged_deactivation_of_last_active_super_admin_is_rejected(): void
@@ -140,27 +152,29 @@ class EditUserSaveHandlerTest extends AdminTestCase
         $this->actingAs($lastSuper);
 
         $errors = $this->expectValidationErrorKeys($lastSuper, [
-            'roles' => ['admin'],
+            'role' => 'admin',
         ]);
 
-        $this->assertArrayHasKey('data.roles', $errors);
+        $this->assertArrayHasKey('data.role', $errors);
         $this->assertTrue($lastSuper->fresh()->hasRole('super_admin'));
     }
 
-    public function test_valid_direct_update_applies_name_status_and_roles_atomically(): void
+    public function test_valid_direct_update_applies_name_status_and_role_atomically(): void
     {
         $this->actingAs($this->admin());
         $target = User::factory()->create();
+        $target->assignRole('admin');
 
         $updated = $this->updateDirectly($target, [
             'name' => 'Fully Updated',
             'email' => $target->email,
             'status' => UserStatus::Inactive->value,
-            'roles' => ['editor'],
+            'role' => 'editor',
         ]);
 
         $this->assertSame('Fully Updated', $updated->name);
         $this->assertSame(UserStatus::Inactive, $updated->status);
+        // REPLACED, not appended: the previous 'admin' role is gone.
         $this->assertSame(['editor'], $updated->getRoleNames()->all());
     }
 }

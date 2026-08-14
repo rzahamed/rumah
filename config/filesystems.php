@@ -35,6 +35,16 @@ return [
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),
+            // Signed-only private delivery, on its OWN prefix. Without an
+            // explicit url, FilesystemServiceProvider::serveFiles() defaults
+            // this disk to /storage and registers GET storage/{path}
+            // (route name storage.local) on every host — which then captures
+            // every PUBLIC disk URL and aborts 403 at the signature check in
+            // ServeFile, because public URLs are correctly unsigned.
+            // /storage is reserved for the public disk's symlink.
+            //
+            // Derived from APP_URL, never from request Host data.
+            'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/private-storage',
             'serve' => true,
             'throw' => false,
             'report' => false,

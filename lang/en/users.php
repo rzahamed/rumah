@@ -13,11 +13,16 @@ return [
         'ar' => 'العربية',
     ],
 
+    'singular' => 'User',
+    'plural' => 'Users',
+
     'fields' => [
         'name' => 'Name',
         'email' => 'Email',
         'status' => 'Status',
-        'roles' => 'Roles',
+        // Singular: the product model is mutually exclusive — a user holds
+        // exactly one role.
+        'role' => 'Role',
         'last_login_at' => 'Last login',
         'preferred_admin_locale' => 'Panel language',
         'created_at' => 'Created',
@@ -58,8 +63,10 @@ return [
             'label' => 'Administrator',
             'description' => 'Panel access with full administration of users, posts, categories, team members, forms, and received submissions.',
         ],
+        // DISPLAY label only. The database role machine name stays 'editor';
+        // renaming that would break every permission grant and policy check.
         'editor' => [
-            'label' => 'Editor',
+            'label' => 'Content Editor',
             'description' => 'Panel access with content publishing only: posts, categories, and team members.',
         ],
     ],

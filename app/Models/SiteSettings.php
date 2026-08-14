@@ -95,9 +95,16 @@ class SiteSettings extends Model
 
     /**
      * Read-only accessor for the public path: never writes on a GET.
+     * Request-scoped memoization — the layout composer and page
+     * controllers may both ask for the row in one request; only the
+     * first call queries.
      */
     public static function current(): ?self
     {
-        return self::query()->where('singleton', true)->first();
+        return once(
+            static fn (): ?self => self::query()
+                ->where('singleton', true)
+                ->first()
+        );
     }
 }

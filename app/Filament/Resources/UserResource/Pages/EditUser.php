@@ -24,9 +24,17 @@ class EditUser extends EditRecord
         ];
     }
 
+    /**
+     * Hydrate the scalar field from the record's single role.
+     *
+     * sole() is deliberate: the application invariant is exactly one role,
+     * and a record violating it should fail visibly here rather than have
+     * this page silently pick the first and then write that choice back on
+     * the next save.
+     */
     protected function mutateFormDataBeforeFill(array $data): array
     {
-        $data['roles'] = $this->getRecord()->getRoleNames()->all();
+        $data['role'] = $this->getRecord()->getRoleNames()->sole();
 
         return $data;
     }
@@ -36,27 +44,22 @@ class EditUser extends EditRecord
         /** @var User $record */
         $actor = auth()->user();
 
-        $requestedRoles = null;
+        $requestedRole = null;
 
-        if (array_key_exists('roles', $data)) {
-            $rawRoles = $data['roles'] ?? [];
+        if (array_key_exists('role', $data)) {
+            $rawRole = $data['role'];
 
-            if (
-                ! is_array($rawRoles)
-                || collect($rawRoles)->contains(
-                    fn (mixed $value): bool => ! is_string($value) || $value === '',
-                )
-            ) {
+            // Exactly one non-empty scalar. An array — including a
+            // single-element one — is rejected outright rather than
+            // unwrapped, so a crafted multi-role payload cannot slip
+            // through by looking close enough to valid.
+            if (! is_string($rawRole) || $rawRole === '') {
                 throw ValidationException::withMessages([
-                    'data.roles' => __('users.guards.roles_invalid'),
+                    'data.role' => __('users.guards.roles_invalid'),
                 ]);
             }
 
-            $requestedRoles = collect($rawRoles)
-                ->unique()
-                ->sort()
-                ->values()
-                ->all();
+            $requestedRole = $rawRole;
         }
 
         $submittedStatus = null;
@@ -81,7 +84,7 @@ class EditUser extends EditRecord
             $record,
             $data,
             $actor,
-            $requestedRoles,
+            $requestedRole,
             $submittedStatus,
         ): void {
             $activeSuperAdmins = User::role('super_admin')
@@ -124,34 +127,34 @@ class EditUser extends EditRecord
                 ]);
             }
 
-            $currentRoles = $locked->getRoleNames()
-                ->sort()
-                ->values()
-                ->all();
+            // sole() enforces the invariant at the write boundary too: a
+            // record holding zero or multiple roles fails visibly instead of
+            // this handler picking one. Choosing the first would be worse
+            // than useless — if the submitted role happened to match it,
+            // roleChanged would be false, syncRoles would never run, and the
+            // surplus roles would silently survive the save.
+            $currentRole = $locked->getRoleNames()->sole();
 
-            $rolesChanged = $requestedRoles !== null
-                && $requestedRoles !== $currentRoles;
+            $roleChanged = $requestedRole !== null
+                && $requestedRole !== $currentRole;
 
-            if ($rolesChanged && ! $actor?->can('manageRoles', $locked)) {
+            if ($roleChanged && ! $actor?->can('manageRoles', $locked)) {
                 throw ValidationException::withMessages([
-                    'data.roles' => __('users.guards.roles_unauthorized'),
+                    'data.role' => __('users.guards.roles_unauthorized'),
                 ]);
             }
 
-            $roleModels = null;
+            $roleModel = null;
 
-            if ($rolesChanged) {
-                $roleModels = Role::query()
+            if ($roleChanged) {
+                $roleModel = Role::query()
                     ->where('guard_name', config('auth.defaults.guard'))
-                    ->whereIn('name', $requestedRoles)
-                    ->get();
+                    ->where('name', $requestedRole)
+                    ->first();
 
-                $missingRoles = collect($requestedRoles)
-                    ->diff($roleModels->pluck('name'));
-
-                if ($missingRoles->isNotEmpty()) {
+                if ($roleModel === null) {
                     throw ValidationException::withMessages([
-                        'data.roles' => __('users.guards.roles_unknown'),
+                        'data.role' => __('users.guards.roles_unknown'),
                     ]);
                 }
             }
@@ -169,12 +172,9 @@ class EditUser extends EditRecord
                     ]);
                 }
 
-                if (
-                    $rolesChanged
-                    && ! in_array('super_admin', $requestedRoles, true)
-                ) {
+                if ($roleChanged && $requestedRole !== 'super_admin') {
                     throw ValidationException::withMessages([
-                        'data.roles' => __(
+                        'data.role' => __(
                             'users.guards.last_super_admin_role',
                         ),
                     ]);
@@ -187,8 +187,9 @@ class EditUser extends EditRecord
                 'status' => $newStatus,
             ])->save();
 
-            if ($rolesChanged) {
-                $locked->syncRoles($roleModels);
+            if ($roleChanged) {
+                // sync REPLACES: the previous role is dropped, never appended to.
+                $locked->syncRoles([$roleModel]);
             }
         });
 

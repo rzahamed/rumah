@@ -21,11 +21,15 @@ class CreateUser extends CreateRecord
 
     protected function handleRecordCreation(array $data): Model
     {
+        // Read directly, with no fallback: the field is required, so an
+        // absent role means validation did not run. Manufacturing an empty
+        // value here would hide that broken boundary and risk a roleless
+        // user; letting it surface keeps the invariant honest.
         return app(InviteUser::class)->invite(
             auth()->user(),
             $data['name'],
             $data['email'],
-            array_values($data['roles'] ?? []),
+            $data['role'],
         );
     }
 

@@ -74,6 +74,35 @@ class TeamMember extends Model
     }
 
     /**
+     * Public URL of the member photo on the configured media disk, or
+     * null when no photo is set (the public site renders its branded
+     * fallback tile instead).
+     */
+    public function photoUrl(): ?string
+    {
+        if ($this->photo_path === null) {
+            return null;
+        }
+
+        return Storage::disk((string) config('platform.media_disk'))
+            ->url($this->photo_path);
+    }
+
+    /**
+     * Public URL of the practice-licence image on the configured media
+     * disk, or null when none is set (the profile simply omits it).
+     */
+    public function licenceImageUrl(): ?string
+    {
+        if ($this->licence_image_path === null) {
+            return null;
+        }
+
+        return Storage::disk((string) config('platform.media_disk'))
+            ->url($this->licence_image_path);
+    }
+
+    /**
      * @return array<string, string>
      */
     protected function casts(): array

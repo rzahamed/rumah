@@ -31,6 +31,16 @@ class CategoryResource extends Resource
         return __('nav.groups.content');
     }
 
+    public static function getModelLabel(): string
+    {
+        return __('content.categories.singular');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('content.categories.plural');
+    }
+
     public static function form(Schema $schema): Schema
     {
         return $schema

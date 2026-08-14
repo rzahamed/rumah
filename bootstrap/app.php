@@ -26,4 +26,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*'),
         );
+
+        // A failed validation flashes the request into the session for
+        // old(). The Turnstile token must never travel with it: it is a
+        // short-lived single-use credential, and there is no reason for it
+        // to sit in session storage. (Laravel already excludes password
+        // fields; this extends the same treatment.)
+        $exceptions->dontFlash(['cf-turnstile-response']);
     })->create();

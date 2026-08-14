@@ -7,6 +7,7 @@ use App\Models\Form;
 use App\Models\FormSubmission;
 use Livewire\Livewire;
 use Tests\Feature\Auth\AdminTestCase;
+use Tests\Support\InteractsWithContactForm;
 
 /**
  * The public submission endpoint (default + localized) and the protected
@@ -14,14 +15,11 @@ use Tests\Feature\Auth\AdminTestCase;
  */
 class FormSubmissionTest extends AdminTestCase
 {
-    private function contactForm(): Form
-    {
-        return Form::factory()->create(['slug' => 'contact']);
-    }
+    use InteractsWithContactForm;
 
     public function test_valid_submission_is_stored_with_declared_fields_only(): void
     {
-        $form = $this->contactForm();
+        $form = $this->genericContactForm();
 
         $response = $this->from($this->publicHost.'/')
             ->post($this->publicHost.'/forms/contact', [
@@ -46,7 +44,7 @@ class FormSubmissionTest extends AdminTestCase
 
     public function test_localized_route_stores_submission_and_flashes_arabic_message(): void
     {
-        $this->contactForm();
+        $this->genericContactForm();
 
         $response = $this->from($this->publicHost.'/ar')
             ->post($this->publicHost.'/ar/forms/contact', [
@@ -63,7 +61,7 @@ class FormSubmissionTest extends AdminTestCase
 
     public function test_invalid_submission_is_rejected_with_field_errors(): void
     {
-        $this->contactForm();
+        $this->genericContactForm();
 
         $this->from($this->publicHost.'/')
             ->post($this->publicHost.'/forms/contact', [
@@ -85,7 +83,7 @@ class FormSubmissionTest extends AdminTestCase
 
     public function test_submission_endpoint_is_not_available_on_admin_host(): void
     {
-        $this->contactForm();
+        $this->genericContactForm();
 
         $this->post($this->adminHost.'/forms/contact', [])->assertNotFound();
     }

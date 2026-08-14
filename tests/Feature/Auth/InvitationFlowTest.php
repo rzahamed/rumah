@@ -26,7 +26,7 @@ class InvitationFlowTest extends AdminTestCase
      *
      * @return array{0: User, 1: string}
      */
-    private function inviteAndCaptureToken(array $roles = []): array
+    private function inviteAndCaptureToken(string $role = 'editor'): array
     {
         Notification::fake();
 
@@ -34,7 +34,7 @@ class InvitationFlowTest extends AdminTestCase
             $this->admin(),
             'Invitee Example',
             'invitee@example.com',
-            $roles,
+            $role,
         );
 
         $token = '';
@@ -55,7 +55,7 @@ class InvitationFlowTest extends AdminTestCase
 
     public function test_invite_creates_invited_user_with_hashed_token_and_expiry(): void
     {
-        [$invited, $token] = $this->inviteAndCaptureToken(['editor']);
+        [$invited, $token] = $this->inviteAndCaptureToken('editor');
 
         $this->assertSame(UserStatus::Invited, $invited->status);
         $this->assertNull($invited->email_verified_at);
@@ -73,7 +73,7 @@ class InvitationFlowTest extends AdminTestCase
     {
         Notification::fake();
 
-        $invited = app(InviteUser::class)->invite($this->admin(), 'X', '  MiXeD@Example.COM ');
+        $invited = app(InviteUser::class)->invite($this->admin(), 'X', '  MiXeD@Example.COM ', 'editor');
 
         $this->assertSame('mixed@example.com', $invited->email);
     }
@@ -84,7 +84,7 @@ class InvitationFlowTest extends AdminTestCase
         $existing = User::factory()->create();
 
         try {
-            app(InviteUser::class)->invite($this->admin(), 'X', $existing->email);
+            app(InviteUser::class)->invite($this->admin(), 'X', $existing->email, 'editor');
             $this->fail('Expected ValidationException for duplicate email.');
         } catch (ValidationException $exception) {
             $this->assertArrayHasKey('email', $exception->errors());
@@ -97,7 +97,7 @@ class InvitationFlowTest extends AdminTestCase
 
         $this->expectException(AuthorizationException::class);
 
-        app(InviteUser::class)->invite($this->editor(), 'X', 'new@example.com');
+        app(InviteUser::class)->invite($this->editor(), 'X', 'new@example.com', 'editor');
     }
 
     public function test_inactive_admin_cannot_invite_despite_role_permissions(): void
@@ -108,7 +108,7 @@ class InvitationFlowTest extends AdminTestCase
 
         $this->expectException(AuthorizationException::class);
 
-        app(InviteUser::class)->invite($inactive, 'X', 'new@example.com');
+        app(InviteUser::class)->invite($inactive, 'X', 'new@example.com', 'editor');
     }
 
     public function test_assigning_roles_requires_manage_roles_permission(): void
@@ -119,7 +119,7 @@ class InvitationFlowTest extends AdminTestCase
 
         $this->expectException(AuthorizationException::class);
 
-        app(InviteUser::class)->invite($creator, 'X', 'new@example.com', ['editor']);
+        app(InviteUser::class)->invite($creator, 'X', 'new@example.com', 'editor');
     }
 
     public function test_unknown_role_is_a_roles_validation_error(): void
@@ -127,10 +127,10 @@ class InvitationFlowTest extends AdminTestCase
         Notification::fake();
 
         try {
-            app(InviteUser::class)->invite($this->admin(), 'X', 'new@example.com', ['nonexistent']);
+            app(InviteUser::class)->invite($this->admin(), 'X', 'new@example.com', 'nonexistent');
             $this->fail('Expected ValidationException for unknown role.');
         } catch (ValidationException $exception) {
-            $this->assertArrayHasKey('roles', $exception->errors());
+            $this->assertArrayHasKey('role', $exception->errors());
         }
     }
 
@@ -139,10 +139,10 @@ class InvitationFlowTest extends AdminTestCase
         Notification::fake();
 
         try {
-            app(InviteUser::class)->invite($this->admin(), 'X', 'new@example.com', ['']);
+            app(InviteUser::class)->invite($this->admin(), 'X', 'new@example.com', '');
             $this->fail('Expected ValidationException for malformed role value.');
         } catch (ValidationException $exception) {
-            $this->assertArrayHasKey('roles', $exception->errors());
+            $this->assertArrayHasKey('role', $exception->errors());
         }
     }
 

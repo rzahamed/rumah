@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AdminLocaleController;
 use App\Http\Controllers\InvitationController;
+use App\Http\Controllers\NewsletterController;
 use App\Http\Controllers\PublicController;
 use App\Http\Controllers\PublicFormController;
 use App\Http\Middleware\NoIndexAdmin;
@@ -50,6 +51,14 @@ $publicRoutes = function () use ($locales, $defaultLocale): void {
         ->where('slug', '[a-z0-9-]+')
         ->name('public.forms.submit');
 
+    // Newsletter signup. Same two-variant model as the form endpoint so
+    // validation and success messages arrive in the visitor's language,
+    // throttled via the named 'newsletter' limiter. A submission endpoint
+    // only — a frontend places the form wherever it wants and posts here.
+    Route::post('/newsletter', [NewsletterController::class, 'store'])
+        ->middleware('throttle:newsletter')
+        ->name('public.newsletter.subscribe');
+
     Route::prefix('{locale}')
         ->where(['locale' => $locales])
         ->middleware(SetLocale::class)
@@ -60,6 +69,10 @@ $publicRoutes = function () use ($locales, $defaultLocale): void {
                 ->middleware('throttle:forms')
                 ->where('slug', '[a-z0-9-]+')
                 ->name('public.forms.submit.localized');
+
+            Route::post('/newsletter', [NewsletterController::class, 'storeLocalized'])
+                ->middleware('throttle:newsletter')
+                ->name('public.newsletter.subscribe.localized');
         });
 };
 

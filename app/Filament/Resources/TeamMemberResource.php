@@ -36,6 +36,16 @@ class TeamMemberResource extends Resource
         return __('nav.groups.content');
     }
 
+    public static function getModelLabel(): string
+    {
+        return __('content.team.singular');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('content.team.plural');
+    }
+
     public static function form(Schema $schema): Schema
     {
         return $schema
@@ -56,9 +66,11 @@ class TeamMemberResource extends Resource
 
                 FileUpload::make('photo_path')
                     ->label(__('content.fields.photo'))
-                    // Env-driven public/private arrangement: local 'public'
-                    // in development, a GCS disk in production via
-                    // MEDIA_DISK — no code change.
+                    // Env-driven disk selection. CURRENT PHASE: 'public' in
+                    // both local and production (VM storage, served through
+                    // the public/storage symlink). A GCS disk is a deferred
+                    // future migration, switchable via MEDIA_DISK with no
+                    // code change.
                     ->disk(config('platform.media_disk'))
                     ->directory('team')
                     ->visibility('public')

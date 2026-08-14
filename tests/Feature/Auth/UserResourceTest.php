@@ -3,10 +3,15 @@
 namespace Tests\Feature\Auth;
 
 use App\Enums\UserStatus;
+use App\Filament\Resources\UserResource;
 use App\Filament\Resources\UserResource\Pages\CreateUser;
 use App\Filament\Resources\UserResource\Pages\EditUser;
+use App\Filament\Resources\UserResource\Pages\ListUsers;
 use App\Models\User;
 use App\Notifications\UserInvitation;
+use Filament\Forms\Components\Select;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Notification;
 use Livewire\Livewire;
 
@@ -48,7 +53,7 @@ class UserResourceTest extends AdminTestCase
             ->fillForm([
                 'name' => 'New Member',
                 'email' => 'member@example.com',
-                'roles' => ['editor'],
+                'role' => 'editor',
             ])
             ->call('create')
             ->assertHasNoFormErrors();
@@ -79,10 +84,218 @@ class UserResourceTest extends AdminTestCase
         Notification::assertNothingSent();
     }
 
+    public function test_admin_cannot_see_super_admins_in_the_users_table(): void
+    {
+        $super = $this->superAdmin();
+        $ordinary = User::factory()->create();
+        $ordinary->assignRole('editor');
+
+        $this->actingAs($this->admin());
+
+        Livewire::test(ListUsers::class)
+            ->assertCanSeeTableRecords([$ordinary])
+            ->assertCanNotSeeTableRecords([$super]);
+    }
+
+    public function test_search_and_filter_cannot_reveal_a_super_admin_to_an_admin(): void
+    {
+        $super = $this->superAdmin();
+        $super->forceFill(['name' => 'Findable Supervisor'])->save();
+
+        $this->actingAs($this->admin());
+
+        // Searching the exact name must still find nothing: the exclusion
+        // lives in the query, so it survives search and filtering.
+        Livewire::test(ListUsers::class)
+            ->searchTable('Findable Supervisor')
+            ->assertCanNotSeeTableRecords([$super]);
+
+        Livewire::test(ListUsers::class)
+            ->filterTable('status', UserStatus::Active->value)
+            ->assertCanNotSeeTableRecords([$super]);
+    }
+
+    public function test_active_super_admin_sees_ordinary_users_and_other_super_admins(): void
+    {
+        $otherSuper = $this->superAdmin();
+        $ordinary = User::factory()->create();
+        $ordinary->assignRole('editor');
+
+        $this->actingAs($this->superAdmin());
+
+        Livewire::test(ListUsers::class)
+            ->assertCanSeeTableRecords([$ordinary, $otherSuper]);
+    }
+
+    /**
+     * A non-super actor who genuinely CAN view users — otherwise the
+     * exclusion would be indistinguishable from having no access at all.
+     */
+    public function test_non_super_viewer_with_users_view_still_cannot_see_super_admins(): void
+    {
+        $super = $this->superAdmin();
+        $ordinary = User::factory()->create();
+        $ordinary->assignRole('editor');
+
+        $viewer = User::factory()->create();
+        $viewer->assignRole('editor');
+        $viewer->givePermissionTo(['access_admin', 'users.view']);
+
+        $this->actingAs($viewer);
+
+        Livewire::test(ListUsers::class)
+            ->assertCanSeeTableRecords([$ordinary])
+            ->assertCanNotSeeTableRecords([$super]);
+
+        $this->assertTrue(Gate::forUser($viewer)->allows('view', $ordinary));
+        $this->assertTrue(Gate::forUser($viewer)->denies('view', $super));
+    }
+
+    public function test_admin_cannot_open_a_super_admin_edit_route_directly(): void
+    {
+        $super = $this->superAdmin();
+
+        $this->actingAs($this->admin());
+
+        // Record route binding runs through the scoped resource query, so
+        // the record resolves to nothing rather than returning 403.
+        $this->get(UserResource::getUrl('edit', ['record' => $super]))->assertNotFound();
+    }
+
+    public function test_forged_mount_of_a_super_admin_edit_page_is_refused(): void
+    {
+        $admin = $this->admin();
+        $super = $this->superAdmin();
+        $originalName = $super->name;
+
+        $this->actingAs($admin);
+
+        // Naming the record directly is the forgery: it never passes through
+        // the table query. Binding resolves nothing, so the page cannot even
+        // mount — asserted on the EXACT exception rather than a broad catch.
+        $this->assertThrows(
+            fn () => Livewire::test(EditUser::class, ['record' => $super->getRouteKey()]),
+            ModelNotFoundException::class,
+        );
+
+        // The policy refuses independently of route binding, so an actor who
+        // somehow obtained the record still cannot act on it.
+        $this->assertTrue(Gate::forUser($admin)->denies('view', $super));
+        $this->assertTrue(Gate::forUser($admin)->denies('update', $super));
+        $this->assertTrue(Gate::forUser($admin)->denies('delete', $super));
+        $this->assertTrue(Gate::forUser($admin)->denies('manageRoles', $super));
+
+        $fresh = $super->fresh();
+
+        $this->assertNotNull($fresh, 'the super admin must still exist');
+        $this->assertSame($originalName, $fresh->name);
+        $this->assertSame(['super_admin'], $fresh->getRoleNames()->all());
+    }
+
+    public function test_ordinary_user_management_is_unchanged_for_an_admin(): void
+    {
+        $admin = $this->admin();
+        $ordinary = User::factory()->create();
+        $ordinary->assignRole('editor');
+
+        $this->assertTrue(Gate::forUser($admin)->allows('view', $ordinary));
+        $this->assertTrue(Gate::forUser($admin)->allows('update', $ordinary));
+        $this->assertTrue(Gate::forUser($admin)->allows('delete', $ordinary));
+        $this->assertTrue(Gate::forUser($admin)->allows('manageRoles', $ordinary));
+    }
+
+    public function test_role_field_is_a_required_single_select_not_a_multi_select(): void
+    {
+        $this->actingAs($this->admin());
+
+        $component = Livewire::test(CreateUser::class);
+
+        // The field is named 'role', not 'roles': a field named after
+        // Spatie's real BelongsToMany relationship can render single-select
+        // while still round-tripping array state.
+        $component->assertFormFieldDoesNotExist('roles');
+
+        // The callback form hands back the real field instance, so this
+        // asserts the actual configuration rather than the rendered markup.
+        $component->assertFormFieldExists('role', function (Select $field): bool {
+            $this->assertFalse($field->isMultiple(), 'the role select must not be multiple');
+            $this->assertTrue($field->isRequired(), 'exactly one role is required');
+
+            return true;
+        });
+    }
+
+    public function test_creating_a_user_without_a_role_is_rejected(): void
+    {
+        $this->actingAs($this->admin());
+
+        Livewire::test(CreateUser::class)
+            ->fillForm([
+                'name' => 'Roleless Person',
+                'email' => 'roleless@example.com',
+            ])
+            ->call('create')
+            ->assertHasFormErrors(['role']);
+
+        $this->assertSame(0, User::query()->where('email', 'roleless@example.com')->count());
+    }
+
+    public function test_created_user_holds_exactly_one_role(): void
+    {
+        $this->actingAs($this->admin());
+
+        Livewire::test(CreateUser::class)
+            ->fillForm([
+                'name' => 'Single Role',
+                'email' => 'single-role@example.com',
+                'role' => 'admin',
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $created = User::query()->where('email', 'single-role@example.com')->sole();
+
+        $this->assertSame(['admin'], $created->getRoleNames()->all());
+        $this->assertSame(1, $created->roles()->count());
+    }
+
+    public function test_editing_replaces_the_existing_role_instead_of_appending(): void
+    {
+        $this->actingAs($this->admin());
+
+        $target = User::factory()->create();
+        $target->assignRole('editor');
+
+        Livewire::test(EditUser::class, ['record' => $target->getRouteKey()])
+            ->fillForm(['role' => 'admin'])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $fresh = $target->fresh();
+
+        $this->assertSame(['admin'], $fresh->getRoleNames()->all());
+        $this->assertSame(1, $fresh->roles()->count());
+        $this->assertFalse($fresh->hasRole('editor'));
+    }
+
+    public function test_edit_form_hydrates_the_current_role_as_a_scalar(): void
+    {
+        $this->actingAs($this->admin());
+
+        $target = User::factory()->create();
+        $target->assignRole('editor');
+
+        Livewire::test(EditUser::class, ['record' => $target->getRouteKey()])
+            ->assertFormSet(['role' => 'editor']);
+    }
+
     public function test_edit_page_updates_name(): void
     {
         $this->actingAs($this->admin());
+        // Every user holds exactly one role; the edit form hydrates from it
+        // with sole(), so a roleless fixture is invalid data, not a shortcut.
         $target = User::factory()->create();
+        $target->assignRole('editor');
 
         Livewire::test(EditUser::class, ['record' => $target->getRouteKey()])
             ->fillForm(['name' => 'Renamed Person'])
@@ -111,9 +324,9 @@ class UserResourceTest extends AdminTestCase
         $this->actingAs($super);
 
         Livewire::test(EditUser::class, ['record' => $super->getRouteKey()])
-            ->fillForm(['roles' => ['admin']])
+            ->fillForm(['role' => 'admin'])
             ->call('save')
-            ->assertHasErrors(['data.roles']);
+            ->assertHasErrors(['data.role']);
 
         $this->assertTrue($super->fresh()->hasRole('super_admin'));
     }
@@ -125,7 +338,7 @@ class UserResourceTest extends AdminTestCase
         $this->actingAs($this->superAdmin());
 
         Livewire::test(EditUser::class, ['record' => $super->getRouteKey()])
-            ->fillForm(['roles' => ['admin']])
+            ->fillForm(['role' => 'admin'])
             ->call('save')
             ->assertHasNoFormErrors();
 
@@ -137,7 +350,7 @@ class UserResourceTest extends AdminTestCase
 
     public function test_role_changes_without_manage_roles_are_not_applied(): void
     {
-        // users.update but NOT users.manage_roles: the roles field is hidden
+        // users.update but NOT users.manage_roles: the role field is hidden
         // and not dehydrated, so no role change can be submitted.
         $limited = User::factory()->create();
         $limited->givePermissionTo(['access_admin', 'users.view', 'users.update']);
@@ -147,7 +360,7 @@ class UserResourceTest extends AdminTestCase
         $target->assignRole('editor');
 
         Livewire::test(EditUser::class, ['record' => $target->getRouteKey()])
-            ->fillForm(['roles' => ['admin']])
+            ->fillForm(['role' => 'admin'])
             ->call('save');
 
         $this->assertSame(['editor'], $target->fresh()->getRoleNames()->all());
@@ -159,6 +372,7 @@ class UserResourceTest extends AdminTestCase
         // dehydrated: activation stays exclusive to AcceptInvitation.
         $this->actingAs($this->admin());
         $invited = User::factory()->invited()->create();
+        $invited->assignRole('editor');
 
         Livewire::test(EditUser::class, ['record' => $invited->getRouteKey()])
             ->fillForm(['name' => 'Still Invited'])
@@ -201,6 +415,7 @@ class UserResourceTest extends AdminTestCase
     {
         $this->actingAs($this->admin());
         $target = User::factory()->create();
+        $target->assignRole('editor');
 
         Livewire::test(EditUser::class, ['record' => $target->getRouteKey()])
             ->callAction('delete');

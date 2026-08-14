@@ -47,12 +47,15 @@ return [
     // Brand label shown in the admin panel (client overrides via APP_NAME).
     'brand_name' => env('APP_NAME', 'CMS Starter'),
 
-    // Media disk (CP4 wires GCS public/private disks; env-driven).
+    // Media disk. Defaults to local server storage — 'public'
+    // (storage/app/public, exposed via the public/storage symlink). The
+    // object-storage disks defined in config/filesystems.php remain
+    // available for deployments that prefer them; set MEDIA_DISK to switch
+    // with no code change.
     'media_disk' => env('MEDIA_DISK', 'public'),
 
-    // Blog featured images: 'public' locally so development never needs GCS;
-    // production sets BLOG_FEATURED_DISK=gcs_public_website. Featured images
-    // are public website assets.
+    // Blog featured images: same arrangement as media_disk above. Featured
+    // images are public website assets.
     'blog_featured_disk' => env('BLOG_FEATURED_DISK', 'public'),
 
     'blog_featured_dir' => trim((string) env('BLOG_FEATURED_DIR', 'blogs'), '/'),
@@ -66,4 +69,34 @@ return [
         'trim',
         explode(',', (string) env('CAL_ALLOWED_HOSTS', 'cal.com'))
     ))),
+
+    // Slug of the canonical admin-defined contact form. The form module is
+    // scoped to this slug, and a frontend looks it up by the same value;
+    // there is nothing to render when no active form matches.
+    'contact_form_slug' => env('CONTACT_FORM_SLUG', 'contact'),
+
+    // Posts per page for a frontend that paginates a blog listing.
+    'blog_posts_per_page' => max(1, (int) env('BLOG_POSTS_PER_PAGE', 4)),
+
+    // Cloudflare Turnstile — protects both public submission boundaries
+    // (admin-defined forms and the newsletter) and the admin login.
+    //
+    // There is deliberately NO "enforce" flag: protection must not be
+    // switchable off by a deployment variable. Verification is mandatory
+    // in every environment except the explicitly listed bypass ones, and
+    // App\Support\Turnstile::assertConfigured() fails closed at boot when
+    // a non-bypass environment has incomplete keys — the same posture
+    // PUBLIC_APP_URL and ADMIN_DOMAIN already take.
+    'turnstile' => [
+        'site_key' => env('TURNSTILE_SITE_KEY'),
+        'secret_key' => env('TURNSTILE_SECRET_KEY'),
+        // Hardcoded, NOT env-driven: no deployment variable can add an
+        // environment to this list. Keys present locally re-enable real
+        // verification without any flag.
+        'bypass_environments' => ['local', 'testing'],
+        // BOUNDED BOTH WAYS on purpose: this timeout sits on the public
+        // request path, so an oversized env value must not be able to hold
+        // a submission open. Clamped to 1..10 seconds.
+        'timeout' => min(10, max(1, (int) env('TURNSTILE_TIMEOUT', 5))),
+    ],
 ];

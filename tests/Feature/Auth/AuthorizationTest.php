@@ -71,13 +71,22 @@ class AuthorizationTest extends AdminTestCase
         $this->assertTrue(Gate::forUser($admin)->denies('delete', $lastSuper));
     }
 
-    public function test_policy_allows_deleting_super_admin_when_another_active_one_remains(): void
+    /**
+     * Deliberately inverted: super administrators are now invisible AND
+     * unmanageable to non-super actors, so "another active super admin
+     * remains" no longer unlocks deletion for an admin. Only another active
+     * super admin may do it, via the Gate::before override.
+     */
+    public function test_policy_denies_admin_deleting_any_super_admin(): void
     {
         $admin = $this->admin();
         $superA = $this->superAdmin();
-        $this->superAdmin();
+        $otherSuper = $this->superAdmin();
 
-        $this->assertTrue(Gate::forUser($admin)->allows('delete', $superA));
+        $this->assertTrue(Gate::forUser($admin)->denies('delete', $superA));
+
+        // The same target IS deletable by another active super admin.
+        $this->assertTrue(Gate::forUser($otherSuper)->allows('delete', $superA));
     }
 
     public function test_policy_denies_bulk_and_structural_abilities_even_for_admin(): void

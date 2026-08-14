@@ -6,7 +6,6 @@ use App\Enums\UserStatus;
 use App\Models\User;
 use App\Notifications\UserInvitation;
 use Illuminate\Auth\Access\AuthorizationException;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -27,19 +26,24 @@ use Spatie\Permission\Models\Role;
  * user must be status-active — checked on the model itself, because
  * Gate::before only grants and an inactive user could still inherit explicit
  * permissions from an assigned role. Second, the Gate must allow
- * users.create to invite or resend, and additionally users.manage_roles to
- * attach any role; the active-only super-admin override applies, and the
- * assignable scope is exactly what the acting user is authorized for — with
- * one explicit invite-flow rule: only an ACTIVE super administrator may
- * include super_admin in an invitation. Every requested role name must
- * exist for the configured auth guard.
+ * users.create to invite or resend, plus users.manage_roles — required
+ * unconditionally, because every invitation now carries exactly one role and
+ * there is no roleless invite to fall through to. The active-only
+ * super-admin override applies, with one explicit invite-flow rule: only an
+ * ACTIVE super administrator may invite a super_admin. The requested role
+ * name must exist for the configured auth guard.
+ *
+ * SINGLE-ROLE INVARIANT: the product model is mutually exclusive, so this
+ * boundary takes ONE scalar role name. A multi-role invitation cannot be
+ * expressed here, which is what keeps the invariant true for non-Filament
+ * callers as well.
  */
 class InviteUser
 {
     /**
-     * @param  list<string>  $roleNames
+     * @param  string  $roleName  Exactly one role name; see the class note.
      */
-    public function invite(User $invitedBy, string $name, string $email, array $roleNames = []): User
+    public function invite(User $invitedBy, string $name, string $email, string $roleName): User
     {
         // Ordered authorization: active status first (Gate::before only
         // grants; an inactive user could still inherit explicit role
@@ -52,27 +56,29 @@ class InviteUser
             throw new AuthorizationException('You are not authorized to invite users.');
         }
 
-        if ($roleNames !== [] && ! $invitedBy->can('users.manage_roles')) {
+        // Every invitation now carries a role, so role authority is required
+        // unconditionally: there is no roleless invite to fall through to.
+        if (! $invitedBy->can('users.manage_roles')) {
             throw new AuthorizationException('You are not authorized to assign roles.');
         }
 
         // Explicit invite-flow rule: only an active super administrator may
         // hand out super_admin through an invitation — users.manage_roles
         // alone must not let an admin mint a super admin here. Checked on
-        // the RAW input with strict comparison: resolveRoles() only
-        // de-duplicates and never renames values, so nothing can smuggle
-        // the name past this point.
-        if (in_array('super_admin', $roleNames, true)
+        // the RAW input with strict comparison: resolveRole() only looks the
+        // name up and never renames it, so nothing can smuggle the name past
+        // this point.
+        if ($roleName === 'super_admin'
             && ! ($invitedBy->status === UserStatus::Active && $invitedBy->hasRole('super_admin'))) {
             throw new AuthorizationException('Only an active super administrator may invite a super administrator.');
         }
 
         $email = Str::lower(trim($email));
-        $roles = $this->resolveRoles($roleNames);
+        $role = $this->resolveRole($roleName);
         [$plaintextToken, $tokenHash] = $this->freshToken();
 
         try {
-            $user = DB::transaction(function () use ($name, $email, $roles, $tokenHash): User {
+            $user = DB::transaction(function () use ($name, $email, $role, $tokenHash): User {
                 // Friendly duplicate check; the unique index stays authoritative.
                 if (User::query()->where('email', $email)->exists()) {
                     throw $this->duplicateEmailValidation();
@@ -91,7 +97,10 @@ class InviteUser
                     'invitation_expires_at' => now()->addDays(config('platform.invitation_expiry_days')),
                 ])->save();
 
-                $user->syncRoles($roles);
+                // syncRoles with a single-element list, never assignRole:
+                // sync REPLACES, so the one-role invariant holds even if the
+                // record somehow arrived with roles already attached.
+                $user->syncRoles([$role]);
 
                 return $user;
             });
@@ -159,41 +168,31 @@ class InviteUser
     }
 
     /**
-     * Validate the requested role names and return the matching Role models
-     * for the configured auth guard. Every supplied value must be a
-     * non-empty string — nothing is silently trimmed or filtered — and every
-     * name must exist as a role; failures surface as validation errors
-     * attached to the roles input, never as raw exceptions.
-     *
-     * @param  array<array-key, mixed>  $roleNames  Raw, unvalidated input.
-     * @return Collection<int, Role>
+     * Validate the requested role name and return the matching Role model
+     * for the configured auth guard. The value must be a non-empty string
+     * that exists as a role; failures surface as validation errors attached
+     * to the role input, never as raw exceptions.
      */
-    private function resolveRoles(array $roleNames): Collection
+    private function resolveRole(string $roleName): Role
     {
-        $requested = collect($roleNames);
-
-        if ($requested->contains(fn ($value): bool => ! is_string($value) || $value === '')) {
+        if ($roleName === '') {
             throw ValidationException::withMessages([
-                'roles' => 'Every role must be a non-empty string.',
+                'role' => 'A role is required.',
             ]);
         }
 
-        $requested = $requested->unique()->values();
-
-        $roles = Role::query()
+        $role = Role::query()
             ->where('guard_name', config('auth.defaults.guard'))
-            ->whereIn('name', $requested->all())
-            ->get();
+            ->where('name', $roleName)
+            ->first();
 
-        $missing = $requested->diff($roles->pluck('name'));
-
-        if ($missing->isNotEmpty()) {
+        if ($role === null) {
             throw ValidationException::withMessages([
-                'roles' => 'Unknown role(s): '.$missing->implode(', ').'.',
+                'role' => 'Unknown role: '.$roleName.'.',
             ]);
         }
 
-        return $roles;
+        return $role;
     }
 
     /**

@@ -2,18 +2,22 @@
 
 namespace Tests\Feature\Content;
 
-use App\Filament\Resources\FormResource\Pages\CreateForm;
-use App\Filament\Resources\FormResource\Pages\EditForm;
 use App\Models\Form;
 use App\Models\FormSubmission;
-use Filament\Forms\Components\Repeater;
-use Livewire\Livewire;
+use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\DB;
 use Tests\Feature\Auth\AdminTestCase;
 
 /**
- * Form definitions: validation-rule derivation, the admin builder's
- * server-side rules (distinct machine names), and the collected-data delete
- * guard backed by the restrictive foreign key.
+ * The GENERIC form engine: validation-rule derivation from a stored
+ * definition, the read-time option sanitizer, and the database-level guard
+ * protecting collected submissions.
+ *
+ * Deliberately free of admin-UI coverage — that now lives in
+ * ContactFormModuleTest, which exercises the single fixed Contact module the
+ * panel exposes. The engine underneath still supports arbitrary slugs, and
+ * that is what these tests pin down, using non-canonical slugs throughout so
+ * they never collide with the provisioned 'contact' row.
  */
 class FormModuleTest extends AdminTestCase
 {
@@ -47,71 +51,70 @@ class FormModuleTest extends AdminTestCase
         $this->assertSame(['required', 'string', 'max:255'], $form->validationRules()['odd']);
     }
 
-    public function test_admin_can_create_a_form(): void
+    /**
+     * The engine still accepts additional form definitions at the model
+     * layer — the newsletter and any future internal form depend on it.
+     * Only the ADMIN surface is restricted to Contact, so this is proven
+     * with a non-reserved slug.
+     */
+    public function test_a_non_canonical_form_can_be_created_at_the_model_layer(): void
     {
-        $this->actingAs($this->admin());
+        $form = Form::query()->create([
+            'name' => 'Inquiry',
+            'slug' => 'inquiry',
+            'is_active' => true,
+            'fields' => [
+                ['name' => 'topic', 'type' => 'select', 'required' => true, 'label' => ['en' => 'Topic'], 'options' => [
+                    ['value' => 'billing', 'label' => ['en' => 'Billing']],
+                ]],
+                ['name' => 'details', 'type' => 'textarea', 'required' => false, 'label' => ['en' => 'Details']],
+            ],
+        ]);
 
-        Livewire::test(CreateForm::class)
-            ->fillForm([
-                'name' => 'Contact',
-                'slug' => 'contact',
-                'is_active' => true,
-                'fields' => [
-                    [
-                        'name' => 'email',
-                        'type' => 'email',
-                        'required' => true,
-                        'label' => ['en' => 'Email', 'ar' => 'البريد'],
-                    ],
-                ],
-            ])
-            ->call('create')
-            ->assertHasNoFormErrors();
+        $fresh = $form->fresh();
 
+        $this->assertSame('inquiry', $fresh->slug);
+        $this->assertTrue($fresh->is_active);
+        $this->assertSame(['topic', 'details'], $fresh->fieldNames());
+        $this->assertSame(['required', 'string', 'in:"billing"'], array_map(
+            'strval',
+            $fresh->validationRules()['topic'],
+        ));
+
+        // The canonical row is untouched alongside it.
         $this->assertSame(1, Form::query()->where('slug', 'contact')->count());
     }
 
-    public function test_duplicate_field_machine_names_are_rejected(): void
+    /**
+     * The panel offers no delete action at all, but the real guarantee is
+     * the restrictive foreign key: collected submissions cannot be orphaned
+     * even by code that bypasses the UI entirely.
+     *
+     * The delete runs in a NESTED transaction so PostgreSQL rolls back to a
+     * savepoint. Without it the constraint violation would abort the whole
+     * RefreshDatabase transaction, and every later query in this test would
+     * fail for the wrong reason — the assertions below are what prove the
+     * connection survived.
+     */
+    public function test_a_form_with_submissions_cannot_be_deleted_at_the_database_level(): void
     {
-        $this->actingAs($this->admin());
-
-        Livewire::test(CreateForm::class)
-            ->fillForm([
-                'name' => 'Broken',
-                'slug' => 'broken',
-                'fields' => [
-                    ['name' => 'email', 'type' => 'email', 'required' => true, 'label' => ['en' => 'Email']],
-                    ['name' => 'email', 'type' => 'text', 'required' => false, 'label' => ['en' => 'Email again']],
-                ],
-            ])
-            ->call('create')
-            ->assertHasErrors();
-
-        $this->assertSame(0, Form::query()->where('slug', 'broken')->count());
-    }
-
-    public function test_form_with_submissions_cannot_be_deleted(): void
-    {
-        $form = Form::factory()->create();
+        $form = Form::factory()->create(['slug' => 'retained']);
         FormSubmission::factory()->create(['form_id' => $form->getKey()]);
 
-        $this->actingAs($this->admin());
-
-        Livewire::test(EditForm::class, ['record' => $form->getRouteKey()])
-            ->callAction('delete')
-            ->assertNotified(__('content.forms.delete_blocked'));
+        $this->assertThrows(
+            fn () => DB::transaction(fn () => $form->delete()),
+            QueryException::class,
+        );
 
         $this->assertNotNull(Form::query()->find($form->getKey()));
+        $this->assertSame(1, FormSubmission::query()->where('form_id', $form->getKey())->count());
     }
 
-    public function test_form_without_submissions_can_be_deleted(): void
+    public function test_a_form_without_submissions_can_be_deleted_at_the_model_layer(): void
     {
-        $form = Form::factory()->create();
+        $form = Form::factory()->create(['slug' => 'disposable']);
 
-        $this->actingAs($this->admin());
-
-        Livewire::test(EditForm::class, ['record' => $form->getRouteKey()])
-            ->callAction('delete');
+        $form->delete();
 
         $this->assertNull(Form::query()->find($form->getKey()));
     }
@@ -189,129 +192,6 @@ class FormModuleTest extends AdminTestCase
 
         $this->assertSame(['accepted'], $rules['consent']);
         $this->assertSame(['nullable', 'boolean'], $rules['updates']);
-    }
-
-    public function test_admin_can_create_a_select_field_with_options(): void
-    {
-        $this->actingAs($this->admin());
-
-        $undoRepeaterFake = Repeater::fake();
-
-        try {
-            Livewire::test(CreateForm::class)
-                ->fillForm([
-                    'name' => 'Inquiry',
-                    'slug' => 'inquiry',
-                    'is_active' => true,
-                    'fields' => [
-                        [
-                            'name' => 'topic',
-                            'type' => 'select',
-                            'required' => true,
-                            'label' => ['en' => 'Topic', 'ar' => 'الموضوع'],
-                            'options' => [
-                                ['value' => 'billing', 'label' => ['en' => 'Billing', 'ar' => 'الفوترة']],
-                            ],
-                        ],
-                    ],
-                ])
-                ->call('create')
-                ->assertHasNoFormErrors();
-        } finally {
-            $undoRepeaterFake();
-        }
-
-        $form = Form::query()->where('slug', 'inquiry')->sole();
-
-        $this->assertSame('select', $form->fields[0]['type']);
-        $this->assertSame('billing', $form->fields[0]['options'][0]['value']);
-        $this->assertSame('الفوترة', $form->fields[0]['options'][0]['label']['ar']);
-    }
-
-    public function test_malformed_and_duplicate_option_values_are_rejected(): void
-    {
-        $this->actingAs($this->admin());
-
-        $undoRepeaterFake = Repeater::fake();
-
-        try {
-            Livewire::test(CreateForm::class)
-                ->fillForm([
-                    'name' => 'Broken',
-                    'slug' => 'broken-options',
-                    'fields' => [[
-                        'name' => 'topic',
-                        'type' => 'select',
-                        'required' => true,
-                        'label' => ['en' => 'Topic'],
-                        'options' => [
-                            ['value' => 'Bad Value!', 'label' => ['en' => 'Bad']],
-                        ],
-                    ]],
-                ])
-                ->call('create')
-                ->assertHasErrors();
-
-            Livewire::test(CreateForm::class)
-                ->fillForm([
-                    'name' => 'Broken Two',
-                    'slug' => 'broken-options-2',
-                    'fields' => [[
-                        'name' => 'topic',
-                        'type' => 'select',
-                        'required' => true,
-                        'label' => ['en' => 'Topic'],
-                        'options' => [
-                            ['value' => 'dup', 'label' => ['en' => 'One']],
-                            ['value' => 'dup', 'label' => ['en' => 'Two']],
-                        ],
-                    ]],
-                ])
-                ->call('create')
-                ->assertHasErrors();
-        } finally {
-            $undoRepeaterFake();
-        }
-
-        $this->assertSame(0, Form::query()->whereIn('slug', ['broken-options', 'broken-options-2'])->count());
-    }
-
-    public function test_switching_away_from_select_strips_stale_options(): void
-    {
-        $form = Form::factory()->create([
-            'fields' => [[
-                'name' => 'topic',
-                'type' => 'select',
-                'required' => true,
-                'label' => ['en' => 'Topic'],
-                'options' => [['value' => 'billing', 'label' => ['en' => 'Billing']]],
-            ]],
-        ]);
-
-        $this->actingAs($this->admin());
-
-        $undoRepeaterFake = Repeater::fake();
-
-        try {
-            Livewire::test(EditForm::class, ['record' => $form->getRouteKey()])
-                ->fillForm([
-                    'fields' => [[
-                        'name' => 'topic',
-                        'type' => 'text',
-                        'required' => true,
-                        'label' => ['en' => 'Topic'],
-                        // Stale options riding along with the type change —
-                        // the save hook must strip them.
-                        'options' => [['value' => 'billing', 'label' => ['en' => 'Billing']]],
-                    ]],
-                ])
-                ->call('save')
-                ->assertHasNoFormErrors();
-        } finally {
-            $undoRepeaterFake();
-        }
-
-        $this->assertArrayNotHasKey('options', $form->fresh()->fields[0]);
     }
 
     public function test_select_options_helper_resolves_locales_and_guards_non_select_fields(): void

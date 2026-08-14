@@ -32,7 +32,7 @@ class InviteRolePolicyTest extends AdminTestCase
             ->fillForm([
                 'name' => 'Second Super',
                 'email' => 'second-super@example.com',
-                'roles' => ['super_admin'],
+                'role' => 'super_admin',
             ])
             ->call('create')
             ->assertHasNoFormErrors();
@@ -72,10 +72,10 @@ class InviteRolePolicyTest extends AdminTestCase
             ->fillForm([
                 'name' => 'Sneaky Invite',
                 'email' => 'sneaky@example.com',
-                'roles' => ['super_admin'],
+                'role' => 'super_admin',
             ])
             ->call('create')
-            ->assertHasFormErrors(['roles']);
+            ->assertHasFormErrors(['role']);
 
         $this->assertSame(0, User::query()->where('email', 'sneaky@example.com')->count());
         Notification::assertNothingSent();
@@ -86,7 +86,7 @@ class InviteRolePolicyTest extends AdminTestCase
         Notification::fake();
 
         try {
-            app(InviteUser::class)->invite($this->admin(), 'Sneaky', 'sneaky@example.com', ['super_admin']);
+            app(InviteUser::class)->invite($this->admin(), 'Sneaky', 'sneaky@example.com', 'super_admin');
             $this->fail('Expected AuthorizationException for super_admin invite by admin.');
         } catch (AuthorizationException) {
             // Expected: the domain guard is authoritative.
@@ -105,7 +105,7 @@ class InviteRolePolicyTest extends AdminTestCase
             ->fillForm([
                 'name' => 'Normal Invite',
                 'email' => 'editor-invite@example.com',
-                'roles' => ['editor'],
+                'role' => 'editor',
             ])
             ->call('create')
             ->assertHasNoFormErrors();

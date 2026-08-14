@@ -4,8 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Models\Form;
 use App\Models\FormSubmission;
+use App\Models\SubmissionNotificationRecipient;
+use App\Notifications\NewFormSubmission;
+use App\Rules\ValidTurnstileToken;
+use App\Support\Turnstile;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Notification;
+use Throwable;
 
 /**
  * Public submission endpoint for admin-defined forms. Validation rules come
@@ -29,7 +35,16 @@ class PublicFormController extends Controller
             ->where('is_active', true)
             ->firstOr(fn () => abort(404));
 
-        $validated = $request->validate($form->validationRules());
+        // The Turnstile check is appended to the definition-derived rules
+        // rather than baked into them: the form's stored definition remains
+        // the sole source of FIELD rules.
+        $validated = $request->validate(
+            [
+                ...$form->validationRules(),
+                Turnstile::FIELD => ValidTurnstileToken::rules(Turnstile::ACTION_PUBLIC_FORM),
+            ],
+            ValidTurnstileToken::messages(),
+        );
 
         // Only the declared field names, even if validation let extra
         // request keys through untouched.
@@ -44,10 +59,30 @@ class PublicFormController extends Controller
             $payload[$checkbox] = filter_var($payload[$checkbox] ?? false, FILTER_VALIDATE_BOOLEAN);
         }
 
-        FormSubmission::query()->create([
+        // UNCONDITIONAL, and deliberately the LAST payload step: a form
+        // definition that declares a field named cf-turnstile-response —
+        // whether by accident or by a tampered definition, as a text field
+        // or as a checkbox the loop above would re-add — must still never
+        // put the verification token into stored submission data.
+        unset($payload[Turnstile::FIELD]);
+
+        $submission = FormSubmission::query()->create([
             'form_id' => $form->getKey(),
             'payload' => $payload,
         ]);
+
+        // The submission is already committed before notification dispatch.
+        // Queue or mail-routing failures must not turn a successful public
+        // submission into an error response or encourage a duplicate
+        // resubmission, so the visitor's outcome is independent of this.
+        try {
+            Notification::send(
+                SubmissionNotificationRecipient::deliverableUsers(),
+                new NewFormSubmission($submission),
+            );
+        } catch (Throwable $exception) {
+            report($exception);
+        }
 
         return redirect()
             ->back()

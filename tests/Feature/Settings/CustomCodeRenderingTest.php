@@ -45,9 +45,11 @@ class CustomCodeRenderingTest extends AdminTestCase
             'charset meta' => strpos($html, '<meta charset'),
             'head end snippet' => strpos($html, '<!-- PROBE-HEAD-END -->'),
             'head close' => strpos($html, '</head>'),
-            'body open' => strpos($html, '<body>'),
+            // Structural marker: the body tag may carry a page class.
+            'body open' => strpos($html, '<body'),
             'body start snippet' => strpos($html, '<!-- PROBE-BODY-START -->'),
-            'page content' => strpos($html, 'public frontend placeholder'),
+            // Stable structural marker independent of translated page copy.
+            'page content' => strpos($html, '<h1'),
             'body end snippet' => strpos($html, '<!-- PROBE-BODY-END -->'),
             'body close' => strpos($html, '</body>'),
         ];

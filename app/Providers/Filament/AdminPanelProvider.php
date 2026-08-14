@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Pages\Auth\Login;
 use App\Filament\Pages\Auth\RequestPasswordReset;
 use App\Http\Middleware\NoIndexAdmin;
 use App\Http\Middleware\SetAdminLocale;
@@ -47,7 +48,10 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->domain($adminDomain)
             ->path('')
-            ->login()
+            // Both auth pages are subclassed rather than default: Login adds
+            // the Turnstile check ahead of the credential comparison, and
+            // RequestPasswordReset removes the account-enumeration signal.
+            ->login(Login::class)
             ->passwordReset(RequestPasswordReset::class)
             // Fixed sidebar group order. Labels are closures so they
             // resolve AFTER SetAdminLocale per request — matching what each

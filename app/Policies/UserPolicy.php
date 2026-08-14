@@ -23,7 +23,8 @@ class UserPolicy
 
     public function view(User $actor, User $target): bool
     {
-        return $this->activeWith($actor, 'users.view');
+        return $this->activeWith($actor, 'users.view')
+            && ! $this->targetIsProtectedSuperAdmin($target);
     }
 
     public function create(User $actor): bool
@@ -37,7 +38,8 @@ class UserPolicy
      */
     public function update(User $actor, User $target): bool
     {
-        return $this->activeWith($actor, 'users.update');
+        return $this->activeWith($actor, 'users.update')
+            && ! $this->targetIsProtectedSuperAdmin($target);
     }
 
     /**
@@ -48,6 +50,7 @@ class UserPolicy
     {
         return $this->activeWith($actor, 'users.delete')
             && ! $actor->is($target)
+            && ! $this->targetIsProtectedSuperAdmin($target)
             && ! $target->isLastActiveSuperAdmin();
     }
 
@@ -103,7 +106,26 @@ class UserPolicy
      */
     public function manageRoles(User $actor, ?User $target = null): bool
     {
-        return $this->activeWith($actor, 'users.manage_roles');
+        return $this->activeWith($actor, 'users.manage_roles')
+            && ! ($target !== null && $this->targetIsProtectedSuperAdmin($target));
+    }
+
+    /**
+     * A super-admin target is off limits to everyone this policy still binds.
+     *
+     * No "unless the actor is a super admin" branch is needed: Gate::before
+     * grants every ability to an ACTIVE super admin before the policy is
+     * consulted, so by the time execution reaches here the actor is
+     * definitionally not one. Adding that branch would duplicate the
+     * override and risk the two drifting apart.
+     *
+     * This is the counterpart to UserResource::getEloquentQuery(): the query
+     * prevents discovery, this refuses direct record operations that never
+     * pass through it — a hand-typed URL or a forged Livewire call.
+     */
+    private function targetIsProtectedSuperAdmin(User $target): bool
+    {
+        return $target->hasRole('super_admin');
     }
 
     private function activeWith(User $actor, string $permission): bool

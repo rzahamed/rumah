@@ -16,6 +16,7 @@ use Filament\Actions\EditAction;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -36,6 +37,16 @@ class PostResource extends Resource
     public static function getNavigationGroup(): string|UnitEnum|null
     {
         return __('nav.groups.content');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('content.posts.singular');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('content.posts.plural');
     }
 
     public static function form(Schema $schema): Schema
@@ -63,13 +74,21 @@ class PostResource extends Resource
 
                 ...TranslatableInputs::textarea('excerpt', __('content.fields.excerpt'), required: false, rows: 3),
 
-                ...TranslatableInputs::textarea('body', __('content.fields.body')),
+                // Bodies are authored in Markdown and rendered by
+                // App\Support\ArticleBody, which escapes any HTML in the
+                // stored value rather than interpreting it. The field type
+                // is unchanged — only the authoring hint is new.
+                ...collect(TranslatableInputs::textarea('body', __('content.fields.body')))
+                    ->map(fn (Textarea $field): Textarea => $field->helperText(__('content.hints.body_markdown')))
+                    ->all(),
 
                 FileUpload::make('featured_image_path')
                     ->label(__('content.fields.featured_image'))
-                    // Env-driven public/private arrangement: local 'public'
-                    // in development, gcs_public_website in production via
-                    // BLOG_FEATURED_DISK — no code change.
+                    // Env-driven disk selection. CURRENT PHASE: 'public' in
+                    // both local and production (VM storage, served through
+                    // the public/storage symlink). A GCS disk is a deferred
+                    // future migration, switchable via BLOG_FEATURED_DISK
+                    // with no code change.
                     ->disk(config('platform.blog_featured_disk'))
                     ->directory(config('platform.blog_featured_dir'))
                     ->visibility('public')
