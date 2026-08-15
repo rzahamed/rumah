@@ -1,0 +1,16 @@
+{{--
+    Practice-area icon "Corporate Services" — transcribed from
+    resources/images/icons/corporate.svg (path data verbatim). Paper draws it
+    in a 24×24 slot; the export's own viewBox is kept so nothing is redrawn.
+    Stroke follows the tab's text colour. Decorative — the tab label names it.
+--}}
+<svg
+    {{ $attributes->merge(['class' => 'shrink-0']) }}
+    viewBox="0 0 19.5 19.4715"
+    fill="none"
+    aria-hidden="true"
+    focusable="false"
+>
+    <path d="M18 15.9715H1.5C0.947715 15.9715 0.5 16.4192 0.5 16.9715V17.9715C0.5 18.5237 0.947715 18.9715 1.5 18.9715H18C18.5523 18.9715 19 18.5237 19 17.9715V16.9715C19 16.4192 18.5523 15.9715 18 15.9715Z" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M3 7.46946V15.9795M16.5 7.46946V15.9795M12.25 7.46946V15.9795M7.25 7.46946V15.9795M8.79 0.745463L1.02 4.99546C0.862633 5.08157 0.731324 5.20842 0.639836 5.36271C0.548347 5.51701 0.500048 5.69308 0.5 5.87246V6.86946C0.5 7.02859 0.563214 7.18121 0.675736 7.29373C0.788258 7.40625 0.94087 7.46946 1.1 7.46946H18.4C18.5591 7.46946 18.7117 7.40625 18.8243 7.29373C18.9368 7.18121 19 7.02859 19 6.86946V5.87246C19 5.69308 18.9517 5.51701 18.8602 5.36271C18.7687 5.20842 18.6374 5.08157 18.48 4.99546L10.71 0.745463C10.4157 0.584412 10.0855 0.5 9.75 0.5C9.41448 0.5 9.08434 0.584412 8.79 0.745463Z" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" />
+</svg>

@@ -1,0 +1,15 @@
+{{--
+    Price glyph — transcribed from resources/images/icons/price-tag.svg (path
+    data verbatim). Paper draws it at 20px beside each package price and at
+    16px inside the discount pill. Stroke follows the surrounding text
+    colour. Decorative — the price label names it.
+--}}
+<svg
+    {{ $attributes->merge(['class' => 'shrink-0']) }}
+    viewBox="0 0 20 20"
+    fill="none"
+    aria-hidden="true"
+    focusable="false"
+>
+    <path d="M16.6667 16.25L12.0833 17.25M12.0833 3.33333V12.6833C12.0834 12.8099 12.1122 12.9348 12.1678 13.0486C12.2233 13.1623 12.304 13.262 12.4037 13.3399C12.5035 13.4178 12.6197 13.4719 12.7435 13.4982C12.8673 13.5245 12.9955 13.5223 13.1183 13.4917L16.6667 12.6667M2.48167 16.1258L7.10583 14.99C7.46664 14.8916 7.78387 14.6747 8.00651 14.3743C8.22915 14.0738 8.34426 13.7071 8.33333 13.3333V1.66667M16.6667 8.33333L3.33333 11.25" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+</svg>

@@ -38,6 +38,23 @@ $defaultLocale = config('platform.default_locale', 'en');
 $publicRoutes = function () use ($locales, $defaultLocale): void {
     Route::get('/', [PublicController::class, 'root'])->name('home.root');
 
+    // About page, default locale. Its {locale} variant is registered below;
+    // LocalizedUrl maps the pair as 'about' / 'about.localized'.
+    Route::get('/about', [PublicController::class, 'aboutRoot'])->name('about');
+
+    // Services page, default locale; {locale} variant below ('services.localized').
+    Route::get('/services', [PublicController::class, 'servicesRoot'])->name('services');
+
+    // Contact page, default locale; {locale} variant below ('contact.localized').
+    Route::get('/contact', [PublicController::class, 'contactRoot'])->name('contact');
+
+    // Blog, default locale; {locale} variants below ('blog.index.localized',
+    // 'blog.show.localized'). Slug pattern matches LocalizedUrl's.
+    Route::get('/blogs', [PublicController::class, 'blogIndexRoot'])->name('blog.index');
+    Route::get('/blogs/{slug}', [PublicController::class, 'blogShowRoot'])
+        ->where('slug', '[a-z0-9-]+')
+        ->name('blog.show');
+
     // Canonicalize the default locale to the root path.
     Route::redirect('/'.$defaultLocale, '/', 301);
 
@@ -64,6 +81,17 @@ $publicRoutes = function () use ($locales, $defaultLocale): void {
         ->middleware(SetLocale::class)
         ->group(function () {
             Route::get('/', [PublicController::class, 'home'])->name('home');
+
+            Route::get('/about', [PublicController::class, 'about'])->name('about.localized');
+
+            Route::get('/services', [PublicController::class, 'services'])->name('services.localized');
+
+            Route::get('/contact', [PublicController::class, 'contact'])->name('contact.localized');
+
+            Route::get('/blogs', [PublicController::class, 'blogIndex'])->name('blog.index.localized');
+            Route::get('/blogs/{slug}', [PublicController::class, 'blogShow'])
+                ->where('slug', '[a-z0-9-]+')
+                ->name('blog.show.localized');
 
             Route::post('/forms/{slug}', [PublicFormController::class, 'store'])
                 ->middleware('throttle:forms')

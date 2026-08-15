@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Enums\UserStatus;
 use App\Models\SiteSettings;
 use App\Models\User;
+use App\Support\BookingUrl;
 use App\Support\Turnstile;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -65,8 +66,16 @@ class AppServiceProvider extends ServiceProvider
         // The settings row is exposed ONLY to the public layout — the
         // admin panel renders Filament's own layouts and never receives
         // this composer, so snippets cannot appear on the admin host.
+        //
+        // The booking URL rides the SAME composer and inherits exactly that
+        // isolation. It is resolved here rather than in a view because
+        // BookingUrl::current() re-checks the Cal allowlist, and validation
+        // must not live in Blade. Both values read through
+        // SiteSettings::current(), whose request-scoped memoization means the
+        // pair costs a single query.
         View::composer('layouts.public', function (\Illuminate\View\View $view): void {
             $view->with('siteSettings', SiteSettings::current());
+            $view->with('calBookingUrl', BookingUrl::current());
         });
 
         Password::defaults(fn (): Password => Password::min(12)->letters()->numbers());

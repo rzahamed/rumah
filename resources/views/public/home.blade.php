@@ -1,11 +1,24 @@
 @extends('layouts.public')
 
 @section('title', config('platform.brand_name'))
+@section('description', __('home.hero.subtitle'))
 
 @section('content')
-    <main style="font-family:system-ui,-apple-system,sans-serif;max-width:42rem;margin:4rem auto;padding:0 1.25rem;line-height:1.6;">
-        <h1 style="margin:0 0 .5rem;">{{ config('platform.brand_name') }}</h1>
-        <p style="color:#555;">Reusable CMS starter — public frontend placeholder. Each client repository replaces this with its own bespoke design (Blade + CSS + GSAP).</p>
-        <p style="color:#888;font-size:.9rem;">Locale: <strong>{{ app()->getLocale() }}</strong></p>
-    </main>
+    {{--
+        Paper's Home Page section order. Two of its ten frames are absent:
+
+        • "Section / Testimonials" — the design's quotes are placeholder copy
+          and there is no CMS module or supplied source for real ones.
+        • The navigation and footer frames, which the layout owns.
+
+        $calBookingUrl arrives from PublicController already validated; each
+        section renders its call to action only when it is present.
+    --}}
+    <x-home.hero :cal-booking-url="$calBookingUrl" />
+    <x-home.impact />
+    <x-home.values />
+    <x-home.offerings :cal-booking-url="$calBookingUrl" />
+    <x-home.process :cal-booking-url="$calBookingUrl" />
+    <x-home.insights :posts="$latestPosts" />
+    <x-home.final-cta :cal-booking-url="$calBookingUrl" />
 @endsection

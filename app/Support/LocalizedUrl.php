@@ -18,16 +18,20 @@ class LocalizedUrl
      * The only switchable pages, keyed by base route name. {slug} is the
      * sole recognised parameter.
      *
-     * Entries exist for the pages the shipped CMS modules can produce. They
-     * are INERT until the corresponding route is registered: every method
-     * below verifies the route exists for the target locale first, so an
-     * entry whose frontend has not been built yet yields null rather than a
-     * URL that would 404. Adding the route is all it takes to enable one.
+     * Entries exist for the pages the shipped CMS modules can produce, plus
+     * this site's own static pages. They are INERT until the corresponding
+     * route is registered: every method below verifies the route exists for
+     * the target locale first, so an entry whose frontend has not been built
+     * yet yields null rather than a URL that would 404. Adding the route is
+     * all it takes to enable one.
      *
      * @var array<string, string>
      */
     private const array PATHS = [
         'home' => '/',
+        'about' => '/about',
+        'services' => '/services',
+        'contact' => '/contact',
         'blog.index' => '/blogs',
         'blog.show' => '/blogs/{slug}',
         'policy.privacy' => '/privacy-policy',

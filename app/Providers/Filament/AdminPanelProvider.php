@@ -24,6 +24,7 @@ use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
+use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\HtmlString;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use LogicException;
@@ -62,6 +63,13 @@ class AdminPanelProvider extends PanelProvider
                 NavigationGroup::make(fn (): string => __('nav.groups.administration')),
             ])
             ->brandName(config('platform.brand_name', config('app.name')))
+            // The official logo, served through Vite like every other image;
+            // Filament renders it with brandName as its alt text on the auth
+            // screens and in the sidebar, at its default logo height (the
+            // PNG's ratio is preserved). Closures so the manifest is read per
+            // request, never at boot. The same PNG is the panel favicon.
+            ->brandLogo(fn (): string => Vite::asset('resources/images/brand/Rumah-TransparentBack.png'))
+            ->favicon(fn (): string => Vite::asset('resources/images/brand/Rumah-TransparentBack.png'))
             ->darkMode(false)
             ->defaultThemeMode(ThemeMode::Light)
             ->colors([
