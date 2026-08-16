@@ -39,11 +39,24 @@
     </div>
 
     <div class="flex grow flex-col items-center gap-[54px] rounded-sm bg-surface-card px-[34px] py-[28px] shadow-faint">
+        {{-- A feature is either a line or a line with indented sub-lines
+             (the prototype's "…, including:" lists); the sub-lines render as
+             a nested list beneath their feature, without a second glyph. --}}
         <ul class="flex w-full flex-col gap-lg">
             @foreach ($package['features'] as $feature)
+                @php($subItems = is_array($feature) ? ($feature['items'] ?? []) : [])
                 <li class="flex items-start gap-[35px]">
                     <x-site.icon.check class="size-[22px] text-midnight-blue" />
-                    <span class="t-ui min-w-0 leading-[125%] text-midnight-blue">{{ $feature }}</span>
+                    <div class="t-ui min-w-0 leading-[125%] text-midnight-blue">
+                        <span>{{ is_array($feature) ? $feature['text'] : $feature }}</span>
+                        @if ($subItems !== [])
+                            <ul class="mt-xs flex flex-col gap-xs ps-md">
+                                @foreach ($subItems as $subItem)
+                                    <li class="text-text-muted">{{ $subItem }}</li>
+                                @endforeach
+                            </ul>
+                        @endif
+                    </div>
                 </li>
             @endforeach
         </ul>

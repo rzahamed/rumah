@@ -7,17 +7,31 @@
     centred, two per row at desktop (527 + 19 + 527 = 1073).
 
     "Card / Service": white, radius 24, the 0 2px 40 #7E7E7E1F elevation,
-    padding 10; a 507×357 thumbnail (radius 20; Paper attaches the SAME
-    photograph to all ten cards, resources/images/services/thumbnail.png);
-    then the body (padding 42px 26px 30px, gap 24): the 28px/120% title, a
-    16px/135% muted intro, the item list (padding 24px 6px, rows 24 apart,
-    each a 22px check 20px before 16px/20px midnight-blue text), and a
-    16px/135% muted closing line.
+    padding 10; a 507×357 thumbnail (radius 20) — the client's photograph
+    for that service, resources/images/services/*, one per card in the
+    grid's order, shown at Paper's frame by object-fit; then the body
+    (padding 42px 26px 30px, gap 24): the 28px/120% title, a 16px/135% muted
+    intro, the item list (padding 24px 6px, rows 24 apart, each a 22px check
+    20px before 16px/20px midnight-blue text), and a 16px/135% muted closing
+    line.
 
-    All ten services are Paper's copy (lang/services.php); there is no
-    services module in the CMS. Cards are static in Paper — no link — so none
-    is added; the thumbnail is decorative, alt="".
+    All ten services are the client's copy from the approved prototype
+    (lang/services.php); there is no services module in the CMS. Cards are
+    static — no link — so none is added; the thumbnail is decorative, alt="".
 --}}
+@php($serviceImages = [
+    'legalCons.png',
+    'contra.jpeg',
+    'tmReg.jpeg',
+    'courtRep.jpeg',
+    'disRes.jpeg',
+    'forma.jpeg',
+    'gov.jpeg',
+    'compli.jpeg',
+    'comLaw.jpeg',
+    'perStat.jpeg',
+])
+
 <section class="pt-4xl desktop:pt-[174px]">
     <div class="container-site">
         <div class="mx-auto flex w-full max-w-[1073px] flex-col items-center gap-xl text-center" data-animate="fade-up">
@@ -31,7 +45,7 @@
                 <li class="flex w-full max-w-[527px] flex-col rounded-[24px] bg-surface-card p-[10px] shadow-float" data-animate-item>
                     <img
                         class="aspect-[507/357] w-full rounded-card object-cover"
-                        src="{{ Vite::asset('resources/images/services/thumbnail.png') }}"
+                        src="{{ Vite::asset('resources/images/services/'.$serviceImages[$loop->index]) }}"
                         alt=""
                         width="507"
                         height="357"

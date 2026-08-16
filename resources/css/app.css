@@ -783,6 +783,99 @@
     }
 
     /*
+    | Testimonials marquee (Home, Paper "Marquee Row / 1" and "Marquee Row /
+    | 2 — offset"). Each row's track holds TWO identical groups — the cards,
+    | then an aria-hidden clone of the same cards — laid out with the same
+    | 19px gap between cards AND between the groups. The track is therefore
+    | 2 × group + 19 wide, and one full group plus its trailing gap is
+    | exactly 50% + 9.5px of it, so translating by that lands pixel-perfectly
+    | on the clone: no jump at the loop. Row 2 starts half a period in —
+    | Paper's "offset". Motion runs along the reading direction: the track
+    | overflows to the left in RTL, so it slides right there.
+    |
+    | STATIC IS THE DEFAULT. Until app.js has wired the Pause/Play button and
+    | added .marquee--ready, nothing moves, the clones are not shown, and each
+    | row is an ordinary scrollable strip — so with no JavaScript every card
+    | is reachable and there is nothing that would need pausing. Only under
+    | .marquee--ready do the clones appear and the tracks animate. Pausing
+    | then: hover, keyboard focus anywhere inside (the button lives there),
+    | and the button's .marquee--paused state all hold the tracks still.
+    | Reduced motion overrides the ready state at the same specificity: no
+    | animation, no clones, scrollable rows, and the button is not shown
+    | because there is nothing to pause.
+    */
+    .marquee {
+        --marquee-shift: calc(-50% - 9.5px);
+    }
+
+    [dir='rtl'] .marquee {
+        --marquee-shift: calc(50% + 9.5px);
+    }
+
+    .marquee__row {
+        overflow-x: auto;
+    }
+
+    .marquee__track {
+        display: flex;
+        gap: 19px;
+        width: max-content;
+    }
+
+    .marquee__group {
+        display: flex;
+        gap: 19px;
+    }
+
+    .marquee__clone {
+        display: none;
+    }
+
+    .marquee--ready .marquee__row {
+        overflow: hidden;
+    }
+
+    .marquee--ready .marquee__clone {
+        display: flex;
+    }
+
+    .marquee--ready .marquee__track {
+        animation: marquee-scroll 45s linear infinite;
+    }
+
+    .marquee--ready .marquee__track--offset {
+        animation-delay: -22.5s;
+    }
+
+    .marquee--ready:hover .marquee__track,
+    .marquee--ready:focus-within .marquee__track,
+    .marquee--ready.marquee--paused .marquee__track {
+        animation-play-state: paused;
+    }
+
+    @keyframes marquee-scroll {
+        to {
+            transform: translateX(var(--marquee-shift));
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .marquee--ready .marquee__row {
+            overflow-x: auto;
+        }
+
+        .marquee--ready .marquee__track {
+            animation: none;
+        }
+
+        .marquee--ready .marquee__clone,
+        .marquee--ready .marquee__toggle,
+        .marquee .marquee__toggle {
+            display: none;
+        }
+    }
+
+    /*
     | Sub-offerings scroller (Paper "Panel Body" cards + pager). A native
     | horizontal scroll-snap strip: swipe, trackpad and — because the track is
     | rendered with tabindex="0", role="region" and an aria-label — the arrow

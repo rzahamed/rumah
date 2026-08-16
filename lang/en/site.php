@@ -40,6 +40,14 @@ return [
         'company' => 'Company',
         'blogs' => 'Blogs',
         'rights' => 'All rights reserved.',
+        // The Social Media column (labels from the approved prototype's
+        // footer; the profile URLs live in the footer component).
+        'social' => 'Social Media',
+        'social_links' => [
+            'x' => 'Twitter/X',
+            'linkedin' => 'LinkedIn',
+            'instagram' => 'Instagram',
+        ],
     ],
 
     'policy' => [

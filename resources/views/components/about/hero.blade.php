@@ -2,9 +2,10 @@
     Paper: About Page → "Section / About Hero". paddingTop 60, paddingInline
     143/142 (1155px content), gap 63: a 48px/120% centred title max 1011,
     then the photograph — full content width × 569, radius 20. No eyebrow, no
-    buttons. The photograph is Paper's (resources/images/about/hero.png); it
-    is illustrative, so its alt is empty, and as the largest above-the-fold
-    asset it carries fetchpriority.
+    buttons. The photograph is the client's hero image
+    (resources/images/about/hero.jpeg, 4096×2160, shown in Paper's 1155×569
+    frame by object-fit); it is illustrative, so its alt is empty, and as the
+    largest above-the-fold asset it carries fetchpriority.
 
     The 60px top is the desktop frame's; below desktop the section keeps the
     site's ordinary 48px hero top used on Home.
@@ -17,10 +18,10 @@
             <img
                 class="aspect-[1155/569] w-full rounded-card object-cover"
                 data-animate="scale"
-                src="{{ Vite::asset('resources/images/about/hero.png') }}"
+                src="{{ Vite::asset('resources/images/about/hero.jpeg') }}"
                 alt=""
-                width="1179"
-                height="593"
+                width="4096"
+                height="2160"
                 fetchpriority="high"
                 decoding="async"
             >

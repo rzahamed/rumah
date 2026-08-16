@@ -13,9 +13,10 @@
     so is absent until the Services page is routed; it appears by itself when
     that route lands rather than shipping as a dead button.
 
-    The photograph is Paper's hero image (resources/images/home/hero.png). It
-    is illustrative and carries no information the copy does not, so its alt
-    is empty; it is the largest above-the-fold asset, hence fetchpriority.
+    The photograph is the client's hero image (resources/images/home/hero.jpeg,
+    6144×3072, shown at Paper's 1080×569 frame by object-fit). It is
+    illustrative and carries no information the copy does not, so its alt is
+    empty; it is the largest above-the-fold asset, hence fetchpriority.
 --}}
 @props(['calBookingUrl' => null])
 
@@ -54,10 +55,10 @@
                 <img
                     class="aspect-[1080/569] w-full rounded-card object-cover"
                     data-animate="scale"
-                    src="{{ Vite::asset('resources/images/home/hero.png') }}"
+                    src="{{ Vite::asset('resources/images/home/hero.jpeg') }}"
                     alt=""
-                    width="1081"
-                    height="593"
+                    width="6144"
+                    height="3072"
                     fetchpriority="high"
                     decoding="async"
                 >

@@ -1,19 +1,19 @@
 <?php
 
 /*
-| Services + Packages page copy, transcribed verbatim from the Paper design
-| file (Desktop / Services + Packages Page). Nothing here is authored by the
-| implementation.
+| Services + Packages page copy — the CLIENT'S English copy, transcribed
+| verbatim from the approved prototype's Services page (its exact rendered
+| text), which supersedes the earlier Paper transcription. Nothing here is
+| authored by the implementation.
 |
-| Prices, discounts and capability claims are the CLIENT'S copy as drawn in
-| Paper — transcribed, not verified — and Paper states no currency beside the
-| figures. Several strings are carried exactly as Paper writes them even where
-| they read as drafting slips, because completing or correcting them would be
-| authoring: "Preparing two (2) two official letter …", "Exclusive upto 30%
-| Discount", "On litigation fees when combined our packages.", and the service
-| cards Compliance / Commercial Law / Personal Status & Family Law, whose intro
-| lines repeat other cards' intros in Paper (Compliance's closing line also
-| repeats its own bullet list). All must be confirmed before publication.
+| Package features may carry indented sub-lines in the prototype (e.g. the
+| contents of the monthly legal report); those are 'items' beneath a feature
+| and render as a nested list. Prices are stated exactly as the prototype
+| states them, with no currency. Wording is carried as written, including
+| "Exclusive upto 30% Discount", the Compliance and Commercial Law cards'
+| intro lines that repeat other cards', and the Comprehensive package's
+| stand-alone "Corporate governance policies" line — all must be confirmed
+| before publication.
 */
 
 return [
@@ -29,27 +29,35 @@ return [
         'items' => [
             [
                 'name' => 'Protection & Growth Package',
-                'price_label' => 'Starting from',
+                'price_label' => 'Starting from:',
                 'price' => '3,000',
                 'features' => [
                     'Providing Legal Consultations (up to 4 consultations per month)',
                     'Drafting or reviewing two (2) simplified contracts per month',
                     'Preparing one (1) official legal letter or regulatory response per month',
-                    'Reviewing company documents and essential legal records',
-                    'Following up on client inquiries',
+                    'Submission of a legal response to a regulatory authority (once per month)',
+                    'Review of the company’s core legal documents and records',
+                    'Ongoing follow-up on client inquiries',
                 ],
             ],
             [
                 'name' => 'Legal Foundation Package',
-                'price_label' => 'Price ranges between',
-                'price' => '3,000 - 6,000',
+                'price_label' => 'Starting from:',
+                'price' => '3,000',
                 'features' => [
-                    'All services included in the “Protection & Growth” package',
-                    'Drafting or reviewing up to four (4) diverse contracts per month',
-                    'Preparing two (2) two official letter or regulatory responses per month',
-                    'Preparing a monthly legal report that includes: Assessment of existing legal obligations, Identification of potential risks, Operational recommendations for management.',
-                    'Reviewing or preparing one internal policy per month (e.g., HR policy, etc.)',
-                    'Attending one (1) monthly legal meeting (on-site or remote).',
+                    'All services included in the “Protection & Growth” Package',
+                    'Drafting or reviewing up to four (4) diversified contracts per month',
+                    'Preparation of two (2) official legal letters or regulatory responses per month',
+                    [
+                        'text' => 'Preparation of a monthly legal report, including:',
+                        'items' => [
+                            'Assessment of existing legal obligations',
+                            'Identification of potential legal risks',
+                            'Operational recommendations for management',
+                        ],
+                    ],
+                    'Review or preparation of one (1) internal policy per month (such as Human Resources policies or similar internal regulations)',
+                    'Attendance of one (1) legal meeting per month (in person or remotely)',
                 ],
             ],
             [
@@ -57,12 +65,34 @@ return [
                 'price_label' => 'Custom Quote',
                 'price' => 'Contact for Pricing',
                 'features' => [
-                    'All services included in the “Protection & Growth” package',
-                    'Drafting and reviewing commercial contracts on an ongoing basis within the monthly hours cap.',
-                    'Conducting an annual or semi-annual Legal Audit. (eg., including a review of contracts, compliance, etc.)',
-                    'Preparing or updating: Internal bylaws and work policies, Governance policies, Compliance and anti-corruption policies, Anti–money laundering controls (if needed).',
-                    'Attending up to three (3) monthly meetings with management or the Board of Directors.',
-                    'Full support in negotiating commercial transactions (MOU – LOI – Term Sheets).',
+                    'Includes all services covered under the “Protection & Growth” Package',
+                    [
+                        'text' => 'Ongoing drafting and review of commercial contracts',
+                        'items' => ['Services provided within the agreed monthly hours'],
+                    ],
+                    [
+                        'text' => 'Conducting an annual or semi-annual legal audit, including:',
+                        'items' => [
+                            'Contract review',
+                            'Regulatory compliance assessment',
+                            'Other relevant legal reviews',
+                        ],
+                    ],
+                    [
+                        'text' => 'Preparation or updating of the following:',
+                        'items' => [
+                            'Internal bylaws and work policies,',
+                            'Governance policies,',
+                            'Compliance and anti-corruption policies,',
+                            'Anti–money laundering controls (if needed).',
+                        ],
+                    ],
+                    'Corporate governance policies',
+                    [
+                        'text' => 'Attendance of up to three (3) monthly meetings',
+                        'items' => ['Meetings with executive management and/or the Board of Directors'],
+                    ],
+                    'Full legal support in negotiating commercial transactions, including (MOU – LOI – Term Sheets).',
                 ],
             ],
         ],
@@ -197,7 +227,7 @@ return [
                     'Personal data protection compliance',
                     'Regulatory authority requirements',
                 ],
-                'outro' => 'Regulatory compliance reviews Anti-money laundering (AML) policies Personal data protection compliance Regulatory authority requirements',
+                'outro' => 'We are committed to aligning your business with approved regulatory requirements, thereby reducing legal risks and enhancing trust and corporate sustainability.',
             ],
             [
                 'title' => 'Commercial Law',

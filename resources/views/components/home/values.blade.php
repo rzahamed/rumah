@@ -13,8 +13,10 @@
     midnight-blue title over 14px/140% muted copy. The fourth card replaces
     the white with an image fill and sets its copy to primary black.
 
-    Both images are Paper's (resources/images/home/values.png and
-    values-innovation.png). CONTRAST NOTE on the fourth card: Paper crops the
+    The photograph is the client's (resources/images/home/values.webp,
+    1367×2048, shown in Paper's 544×544 frame by object-fit); the fourth
+    card's fill is Paper's values-innovation.png. CONTRAST NOTE on that
+    fourth card: Paper crops the
     1024×1024 swoosh at 50%/50% cover, which puts the dark half of that image
     under the right-hand end of the black copy; that is reproduced as drawn
     and flagged rather than repositioned.
@@ -33,10 +35,10 @@
             <img
                 class="aspect-square w-full max-w-[544px] shrink-0 rounded-card object-cover desktop:w-[544px]"
                 data-animate="reveal-start"
-                src="{{ Vite::asset('resources/images/home/values.png') }}"
+                src="{{ Vite::asset('resources/images/home/values.webp') }}"
                 alt=""
-                width="535"
-                height="544"
+                width="1367"
+                height="2048"
                 loading="lazy"
                 decoding="async"
             >

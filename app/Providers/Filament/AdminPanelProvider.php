@@ -67,13 +67,16 @@ class AdminPanelProvider extends PanelProvider
             // Filament renders it with brandName as its alt text on the auth
             // screens and in the sidebar, at its default logo height (the
             // PNG's ratio is preserved). Closures so the manifest is read per
-            // request, never at boot. The same PNG is the panel favicon.
+            // request, never at boot. The favicon is the dedicated 64×64 mark.
             ->brandLogo(fn (): string => Vite::asset('resources/images/brand/Rumah-TransparentBack.png'))
-            ->favicon(fn (): string => Vite::asset('resources/images/brand/Rumah-TransparentBack.png'))
+            ->favicon(fn (): string => Vite::asset('resources/images/brand/RumahLF-FV.png'))
             ->darkMode(false)
             ->defaultThemeMode(ThemeMode::Light)
+            // The site's brand blue (--color-midnight-blue in resources/css/app.css),
+            // not a Filament preset — Color::hex() derives the full 50-950 shade
+            // ramp Filament needs for hover/focus states from that single value.
             ->colors([
-                'primary' => Color::Indigo,
+                'primary' => Color::hex('#02253c'),
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')

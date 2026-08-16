@@ -24,7 +24,10 @@
     'resources/images/home/process-3.png',
 ])
 
-<section class="section">
+{{-- .section-end: the Testimonials band that follows is a full-bleed dark
+     surface with no light gap of its own, so this section closes with the
+     site's section padding rather than butting its CTA against the band. --}}
+<section class="section section-end">
     <div class="container-site">
         <div class="mx-auto flex w-full max-w-[1056px] flex-col items-center gap-xl text-center" data-animate="fade-up">
             <x-site.eyebrow :label="__('home.process.eyebrow')" />

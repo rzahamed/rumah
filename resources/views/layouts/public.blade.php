@@ -26,8 +26,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>@yield('title', config('platform.brand_name'))</title>
-    {{-- The official logo doubles as the site icon (public/favicon.ico is empty). --}}
-    <link rel="icon" type="image/png" href="{{ Vite::asset('resources/images/brand/Rumah-TransparentBack.png') }}">
+    {{-- The official 64×64 favicon mark (public/favicon.ico is empty). --}}
+    <link rel="icon" type="image/png" sizes="64x64" href="{{ Vite::asset('resources/images/brand/RumahLF-FV.png') }}">
     @hasSection('description')
         <meta name="description" content="@yield('description')">
     @endif

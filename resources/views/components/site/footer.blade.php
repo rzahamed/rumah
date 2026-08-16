@@ -45,15 +45,20 @@
     vertical padding.
 
     Paper's top row is LOGO | Company | Social Media laid out with
-    justify-content: space-between, which is what places the Company column
-    in the middle of the row (x 562–782 at 1440) and Social Media at the far
-    edge. The Social Media column's LINKS are deliberately not rendered: no
-    profile URLs have been supplied and the CMS has no field for them, so
-    there is nothing to link to and none is invented. Its 220px slot is kept
-    as an empty spacer so the row's geometry stays Paper's — Company does not
-    slide to the edge — and the column returns into that same slot when real
-    URLs exist.
+    justify-content: space-between, which places the Company column in the
+    middle of the row (x 562–782 at 1440) and Social Media at the far edge.
+    The Social Media column links to the firm's profiles — the URLs supplied
+    by the client are held in $socialLinks below (there is no CMS field for
+    them), with the labels from lang/site.php.
 --}}
+@php
+    // The firm's profiles, as supplied; labels come from lang/site.php.
+    $socialLinks = [
+        'x' => 'https://x.com/@RumahLawFirm',
+        'linkedin' => 'https://www.linkedin.com/company/rumah-law-firm-legal-consultancy/',
+        'instagram' => 'https://www.instagram.com/rumah.lawfirm',
+    ];
+@endphp
 <footer class="bg-surface-section-dark text-text-on-brand">
     <div class="container-site py-4xl tablet:pt-[119px] tablet:pb-[59px]">
         <div class="mx-auto flex w-full max-w-[1080px] flex-col gap-2xl">
@@ -72,8 +77,15 @@
                     </nav>
                 @endif
 
-                {{-- Paper's "Footer Column / Social Media" slot, empty until profile URLs exist. --}}
-                <div class="hidden tablet:block tablet:w-[220px] tablet:shrink-0" aria-hidden="true"></div>
+                <nav aria-labelledby="footer-social" class="flex flex-col gap-[30px] tablet:w-[220px] tablet:shrink-0">
+                    <h2 id="footer-social" class="t-h3 leading-[34px] text-text-on-brand">{{ __('site.footer.social') }}</h2>
+
+                    <ul class="flex flex-col gap-[30px]">
+                        @foreach ($socialLinks as $key => $url)
+                            <li><a class="t-copy leading-6 text-text-on-brand-muted hover:text-text-on-brand" href="{{ $url }}" rel="noopener">{{ __('site.footer.social_links.'.$key) }}</a></li>
+                        @endforeach
+                    </ul>
+                </nav>
             </div>
 
             <div class="flex flex-col gap-md pt-2xl tablet:flex-row tablet:items-center tablet:justify-between tablet:gap-10 tablet:pt-[106px]">
