@@ -9,11 +9,13 @@
 | Package features may carry indented sub-lines in the prototype (e.g. the
 | contents of the monthly legal report); those are 'items' beneath a feature
 | and render as a nested list. Prices are stated exactly as the prototype
-| states them, with no currency. Wording is carried as written, including
-| "Exclusive upto 30% Discount", the Compliance and Commercial Law cards'
-| intro lines that repeat other cards', and the Comprehensive package's
-| stand-alone "Corporate governance policies" line — all must be confirmed
-| before publication.
+| states them, with no currency, except the "Legal Foundation" package, whose
+| starting price is a later client-supplied figure carrying an explicit SAR
+| prefix. Wording is carried as written, except the package-holder discount,
+| now the client-confirmed "Exclusive 10%–15% Discount". The Compliance and
+| Commercial Law cards' intro lines that repeat other cards', and the
+| Comprehensive package's stand-alone "Corporate governance policies" line,
+| must still be confirmed before publication.
 */
 
 return [
@@ -43,7 +45,7 @@ return [
             [
                 'name' => 'Legal Foundation Package',
                 'price_label' => 'Starting from:',
-                'price' => '3,000',
+                'price' => 'SAR 6,000',
                 'features' => [
                     'All services included in the “Protection & Growth” Package',
                     'Drafting or reviewing up to four (4) diversified contracts per month',
@@ -102,7 +104,7 @@ return [
         'title' => 'Litigation Add-ons',
         'body' => 'Added to any package through a separate agreement.',
         'benefit_label' => 'Benefits for Package Holders:',
-        'discount' => 'Exclusive upto 30% Discount',
+        'discount' => 'Exclusive 10%–15% Discount',
         'benefit_body' => 'On litigation fees when combined our packages.',
         'items' => [
             'Representing the client before judicial and quasi-judicial authorities according to the scope of the case.',

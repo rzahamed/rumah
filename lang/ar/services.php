@@ -14,7 +14,10 @@
 |
 | Package features may carry indented sub-lines in the prototype; those are
 | 'items' beneath a feature and render as a nested list. Prices are stated
-| exactly as the prototype states them, with no currency.
+| exactly as the prototype states them, with no currency, except the "Legal
+| Foundation" package, whose starting price is a later client-supplied figure
+| carrying an explicit SAR prefix. The package-holder discount is likewise a
+| later client-confirmed value, not a prototype transcription.
 */
 
 return [
@@ -43,7 +46,7 @@ return [
             [
                 'name' => 'باقة الأساس القانوني',
                 'price_label' => 'تبدأ من:',
-                'price' => '3,000',
+                'price' => 'SAR 6,000',
                 'features' => [
                     'جميع الخدمات المشمولة في باقة “الحماية والنمو”',
                     'صياغة أو مراجعة ما يصل إلى أربعة (4) عقود متنوعة شهريًا',
@@ -88,7 +91,7 @@ return [
         'title' => 'الإضافات على خدمات التقاضي',
         'body' => 'تُضاف إلى أي باقة من خلال اتفاقية منفصلة.',
         'benefit_label' => 'مزايا حاملي الباقات:',
-        'discount' => 'خصم حصري يصل إلى 30%',
+        'discount' => 'خصم حصري يتراوح بين 10% و15%',
         'benefit_body' => 'على رسوم التقاضي عند الجمع بين باقاتنا.',
         'items' => [
             'تمثيل العميل أمام الجهات القضائية وشبه القضائية وفقًا لنطاق القضية.',
