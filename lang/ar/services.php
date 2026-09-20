@@ -91,7 +91,10 @@ return [
         'title' => 'الإضافات على خدمات التقاضي',
         'body' => 'تُضاف إلى أي باقة من خلال اتفاقية منفصلة.',
         'benefit_label' => 'مزايا حاملي الباقات:',
-        'discount' => 'خصم حصري يتراوح بين 10% و15%',
+        // The range is wrapped in U+2066 LRI / U+2069 PDI: without the isolate
+        // the neutral en dash between two Latin-digit runs resolves RTL and the
+        // pill renders "15%-10%". Written as escapes so the controls stay visible.
+        'discount' => "خصم حصري \u{2066}10%–15%\u{2069}",
         'benefit_body' => 'على رسوم التقاضي عند الجمع بين باقاتنا.',
         'items' => [
             'تمثيل العميل أمام الجهات القضائية وشبه القضائية وفقًا لنطاق القضية.',
